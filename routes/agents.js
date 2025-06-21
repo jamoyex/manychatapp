@@ -30,12 +30,22 @@ module.exports = (pool) => {
     }
 
     try {
-      const agents = await pool.query(
-        'SELECT * FROM agents WHERE owner_id = $1 ORDER BY created_at DESC',
+      const agentsResult = await pool.query(
+        `SELECT 
+            a.*, 
+            CASE WHEN ai.id IS NOT NULL THEN true ELSE false END as is_installed
+         FROM 
+            agents a
+         LEFT JOIN 
+            app_installs ai ON a.id = ai.agent_id
+         WHERE 
+            a.owner_id = $1 
+         ORDER BY 
+            a.created_at DESC`,
         [req.session.userId]
       );
 
-      res.json({ agents: agents.rows });
+      res.json({ agents: agentsResult.rows });
     } catch (error) {
       console.error('Get agents error:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -273,36 +283,39 @@ module.exports = (pool) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { id: agentId } = req.params;
+    const { id: agentNumericId } = req.params;
     const webhookUrl = process.env.KNOWLEDGE_BASE_WEBHOOK_URL;
 
     try {
-      // Check if agent exists and belongs to user
+      // Fetch the full agent details, including the string agent_id
       const agentResult = await pool.query(
-        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
-        [agentId, req.session.userId]
+        'SELECT id, agent_id, is_training FROM agents WHERE id = $1 AND owner_id = $2',
+        [agentNumericId, req.session.userId]
       );
 
       if (agentResult.rows.length === 0) {
         return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
       }
 
+      const agent = agentResult.rows[0];
+
       // Check if already training
-      if (agentResult.rows[0].is_training) {
+      if (agent.is_training) {
         return res.status(400).json({ error: 'Training is already in progress for this agent.' });
       }
 
-      // Get current knowledge base files
+      // Get current knowledge base files to get a count
       const knowledgeBaseResult = await pool.query(
-        'SELECT * FROM knowledge_base WHERE agent_id = $1',
-        [agentId]
+        'SELECT id FROM knowledge_base WHERE agent_id = $1',
+        [agent.id]
       );
 
       // Trigger training webhook if configured
       if (webhookUrl) {
         try {
+          // Send the correct agent_id string in the payload
           await axios.post(webhookUrl, {
-            agentId: agentId
+            agent_id: agent.agent_id 
           });
         } catch (webhookError) {
           console.error('Webhook call failed:', webhookError.message);
@@ -312,10 +325,10 @@ module.exports = (pool) => {
         console.warn('KNOWLEDGE_BASE_WEBHOOK_URL not configured - training webhook skipped');
       }
 
-      // Set is_training = true (separate backend will update last_trained and set is_training = false)
+      // Set is_training = true
       await pool.query(
         'UPDATE agents SET is_training = true WHERE id = $1',
-        [agentId]
+        [agent.id]
       );
 
       res.json({ 
@@ -442,21 +455,33 @@ module.exports = (pool) => {
 
       const setClause = fieldsToUpdate.join(', ');
       
-      const query = `
+      const updateQuery = `
         UPDATE agents 
         SET ${setClause}
         WHERE id = $${valueIndex++} AND owner_id = $${valueIndex++}
-        RETURNING *
       `;
       
       const queryValues = [...valuesToUpdate, id, req.session.userId];
-      const result = await pool.query(query, queryValues);
+      await pool.query(updateQuery, queryValues);
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Agent not found or you do not have permission to update it.' });
+      // After update, re-fetch the agent with the same logic as GET to ensure consistent data
+      const updatedAgentResult = await pool.query(`
+        SELECT 
+            a.*, 
+            CASE WHEN ai.id IS NOT NULL THEN true ELSE false END as is_installed
+        FROM 
+            agents a
+        LEFT JOIN 
+            app_installs ai ON a.id = ai.agent_id
+        WHERE 
+            a.id = $1 AND a.owner_id = $2
+      `, [id, req.session.userId]);
+
+      if (updatedAgentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found after update.' });
       }
 
-      res.json({ agent: result.rows[0] });
+      res.json({ agent: updatedAgentResult.rows[0] });
 
     } catch (error) {
       console.error('Update agent error:', error);

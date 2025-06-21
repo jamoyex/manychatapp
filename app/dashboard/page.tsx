@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { getCurrentUser, getAgents, logoutUser, getAgentInstallStatus, getManyChatInstallLink } from '@/lib/auth'
+import { getCurrentUser, getAgents, logoutUser, getManyChatInstallLink } from '@/lib/auth'
 import { CreateAgentModal } from '@/components/dashboard/CreateAgentModal'
 import { ViewAgentModal } from '@/components/dashboard/ViewAgentModal'
 import { EditAgentModal } from '@/components/dashboard/EditAgentModal'
@@ -26,7 +26,7 @@ interface Agent {
   is_active: boolean
   created_at: string
   status: string
-  isInstalled?: boolean
+  is_installed?: boolean
 }
 
 export default function DashboardPage() {
@@ -67,21 +67,7 @@ export default function DashboardPage() {
   const fetchAgents = async () => {
     try {
       const { agents } = await getAgents()
-      
-      // Check install status for each agent
-      const agentsWithInstallStatus = await Promise.all(
-        agents.map(async (agent) => {
-          try {
-            const { isInstalled } = await getAgentInstallStatus(agent.id)
-            return { ...agent, isInstalled }
-          } catch (error) {
-            console.error(`Failed to check install status for agent ${agent.id}:`, error)
-            return { ...agent, isInstalled: false }
-          }
-        })
-      )
-      
-      setAgents(agentsWithInstallStatus)
+      setAgents(agents)
     } catch (error) {
       console.error('Failed to fetch agents:', error)
     }
@@ -109,7 +95,6 @@ export default function DashboardPage() {
   }
 
   const handleAgentCreated = (newAgent: Agent) => {
-    setAgents(prevAgents => [newAgent, ...prevAgents])
     fetchAgents()
   }
 
@@ -123,7 +108,7 @@ export default function DashboardPage() {
   }
 
   // Active agents are those that exist in app_installs table
-  const activeAgentsCount = agents.filter(agent => agent.isInstalled).length
+  const activeAgentsCount = agents.filter(agent => agent.is_installed).length
 
   if (isLoading) {
     return (
@@ -240,9 +225,9 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-start">
                       <CardTitle>{agent.bot_name}</CardTitle>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        agent.isInstalled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        agent.is_installed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {agent.isInstalled ? 'Active' : 'Inactive'}
+                        {agent.is_installed ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                     <CardDescription>{agent.company_name}</CardDescription>
@@ -261,7 +246,7 @@ export default function DashboardPage() {
                           View
                         </Button>
                       </div>
-                      {!agent.isInstalled && installLink && (
+                      {!agent.is_installed && installLink && (
                         <Button 
                           size="sm" 
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white"

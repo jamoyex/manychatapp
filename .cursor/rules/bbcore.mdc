@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Help me create a frontend saas dashboard. 
+
+Do not build a large codebase yet. We will start one by one and slowly. Do not try to generate large set of codes everytime.
+
+The app I will be creating will be running on React and Shadcn Components for UI and my back end will be node.js
+

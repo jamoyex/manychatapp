@@ -296,6 +296,8 @@ export default function DashboardPage() {
         onClose={() => setInstallModalOpen(false)}
         installLink={installLink}
         agentName={selectedAgent?.bot_name || ''}
+        agentId={selectedAgent?.agent_id}
+        userEmail={user?.email}
       />
     </div>
   )

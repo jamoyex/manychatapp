@@ -63,6 +63,9 @@ SESSION_SECRET=your-super-secret-session-key-change-this-in-production
 # ManyChat Integration
 MANYCHAT_INSTALL_LINK=https://your-manychat-installation-link.com
 
+# Knowledge Base Webhook
+KNOWLEDGE_BASE_WEBHOOK_URL=https://your-n8n-or-zapier-webhook-url.com
+
 # Application Configuration
 NODE_ENV=development
 PORT=3000
@@ -142,6 +145,56 @@ bbcore-saas/
 - `PUT /api/agents/:id` - Update agent
 - `DELETE /api/agents/:id` - Delete agent
 - `GET /api/agents/:id` - Get specific agent
+
+### Knowledge Base & Training
+- `GET /api/agents/:id/knowledge-base` - Get all knowledge base files for an agent.
+- `POST /api/agents/:id/knowledge-base` - Upload new files (`.pdf`, `.docx`) to Cloudflare R2.
+- `DELETE /api/agents/:id/knowledge-base/:fileId` - Delete a file from R2 and the database.
+- `POST /api/agents/:id/train` - Trigger the training webhook. Sets `is_training` to `true` on the agent.
+
+## 🧠 Training Webhook Workflow
+
+When a user clicks the "Train Bot" button, the application triggers a webhook to an external training service (e.g., n8n, Zapier, or a custom backend). This decouples the main application from the time-intensive training process.
+
+1.  **Trigger**: The app sends a `POST` request to the `KNOWLEDGE_BASE_WEBHOOK_URL` defined in your `.env` file. The request body contains the `agentId`:
+    ```json
+    {
+      "agentId": 123
+    }
+    ```
+2.  **Acknowledge**: The app sets the agent's `is_training` flag to `true` in the database. The UI will show a "Training in progress..." status.
+3.  **External Processing**: Your separate backend service receives the webhook and performs the following tasks:
+    - Fetches all knowledge base files for the given `agentId` from the database.
+    - Runs your AI model training logic using these files.
+    - Upon completion, it connects directly to the PostgreSQL database to update the training status.
+
+### **Required Database Updates (For External Backend)**
+
+After the training process is complete, your external service **must** execute the following SQL commands to finalize the process and update the UI correctly.
+
+**On Success:**
+```sql
+-- Step 1: Update the agent's status to show training is complete.
+UPDATE agents 
+SET 
+  is_training = false, 
+  last_trained = CURRENT_TIMESTAMP 
+WHERE id = $1; -- Use the agentId from the webhook
+
+-- Step 2: Mark the files that were used in the training as 'trained'.
+-- This ensures the UI accurately reflects which files are part of the current knowledge base.
+UPDATE knowledge_base 
+SET trained = true 
+WHERE agent_id = $1 AND id IN ($2, $3, ...); -- Provide the agentId and an array of file IDs that were successfully trained
+```
+
+**On Failure:**
+If the training process fails, you should still mark the agent as no longer training so the user can try again.
+```sql
+UPDATE agents 
+SET is_training = false 
+WHERE id = $1; -- Use the agentId from the webhook
+```
 
 ## 🗄️ Database Schema
 

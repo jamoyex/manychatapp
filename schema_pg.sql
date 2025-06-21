@@ -36,6 +36,8 @@ CREATE TABLE agents (
     twitter_url VARCHAR(500),
     website_url VARCHAR(500),
     youtube_url VARCHAR(500),
+    last_trained TIMESTAMP,
+    is_training BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -92,4 +94,20 @@ CREATE TRIGGER update_agents_updated_at BEFORE UPDATE ON agents
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_installs_updated_at BEFORE UPDATE ON app_installs
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Knowledge Base table for storing file metadata
+CREATE TABLE knowledge_base (
+    id SERIAL PRIMARY KEY,
+    agent_id INTEGER REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_size INTEGER NOT NULL, -- Stored in bytes
+    file_type VARCHAR(255) NOT NULL,
+    file_url TEXT, -- Public URL of the file in Cloudflare R2
+    trained BOOLEAN DEFAULT false, -- Whether the file has been included in a successful training
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING', -- PENDING, UPLOADED, FAILED
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP
+);
+
+CREATE INDEX idx_knowledge_base_agent_id ON knowledge_base(agent_id); 

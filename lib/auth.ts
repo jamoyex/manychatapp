@@ -115,6 +115,68 @@ export async function getManyChatInstallLink(): Promise<{ installLink: string }>
   return response.json()
 }
 
+// --- KNOWLEDGE BASE API ---
+export async function getKnowledgeBase(agentId: number): Promise<{ knowledgeBase: any[] }> {
+  const response = await fetch(`${API_BASE_URL}/agents/${agentId}/knowledge-base`, {
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch knowledge base');
+  }
+  return response.json();
+}
+
+export async function uploadKnowledgeBaseFiles(agentId: number, files: File[]): Promise<any> {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+
+  const response = await fetch(`${API_BASE_URL}/agents/${agentId}/knowledge-base`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to upload files');
+  }
+
+  return data;
+}
+
+export async function deleteKnowledgeBaseFile(agentId: number, fileId: number): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/agents/${agentId}/knowledge-base/${fileId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete file');
+  }
+
+  return data;
+}
+
+export async function trainBot(agentId: number): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/agents/${agentId}/train`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to start training');
+  }
+
+  return data;
+}
+
 // Validation functions
 export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

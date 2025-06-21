@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { KnowledgeBaseTab } from './KnowledgeBaseTab';
 
 interface AgentFormData {
   [key: string]: any;
@@ -30,6 +31,7 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
   const [formData, setFormData] = useState<AgentFormData>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('core');
 
   useEffect(() => {
     if (isOpen && agentId) {
@@ -87,22 +89,25 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
         </DialogHeader>
         
         {isLoading && !Object.keys(formData).length ? (<p className="py-8 text-center">Loading data...</p>) : (
-          <form onSubmit={handleSubmit}>
-            <Tabs defaultValue="core" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+          <div>
+            <Tabs defaultValue="core" className="w-full" onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="core">Core</TabsTrigger>
                 <TabsTrigger value="company">Company</TabsTrigger>
                 <TabsTrigger value="leader_product">Leader & Product</TabsTrigger>
                 <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
               </TabsList>
               
               <TabsContent value="core">
-                <TabContentWrapper>
-                  <div><Label htmlFor="agent_id">Agent ID</Label><Input id="agent_id" name="agent_id" value={formData.agent_id || ''} readOnly disabled className="font-mono bg-gray-100" /></div>
-                  <div><Label htmlFor="bot_name">Bot Name</Label><Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} /></div>
-                  <div><Label htmlFor="bot_primary_goal">Primary Goal</Label><Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} /></div>
-                  <div><Label htmlFor="bot_tone_for_replies">Tone for Replies</Label><Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} /></div>
-                </TabContentWrapper>
+                <form onSubmit={handleSubmit}>
+                  <TabContentWrapper>
+                    <div><Label htmlFor="agent_id">Agent ID</Label><Input id="agent_id" name="agent_id" value={formData.agent_id || ''} readOnly disabled className="font-mono bg-gray-100" /></div>
+                    <div><Label htmlFor="bot_name">Bot Name</Label><Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} /></div>
+                    <div><Label htmlFor="bot_primary_goal">Primary Goal</Label><Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} /></div>
+                    <div><Label htmlFor="bot_tone_for_replies">Tone for Replies</Label><Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} /></div>
+                  </TabContentWrapper>
+                </form>
               </TabsContent>
 
               <TabsContent value="company">
@@ -137,16 +142,24 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                     <div><Label htmlFor="purchase_book_appointments_here">Booking/Purchase URL</Label><Input id="purchase_book_appointments_here" name="purchase_book_appointments_here" value={formData.purchase_book_appointments_here || ''} onChange={handleChange} /></div>
                 </TabContentWrapper>
               </TabsContent>
+
+              <TabsContent value="knowledge">
+                <TabContentWrapper>
+                  {agentId && <KnowledgeBaseTab agentId={agentId} agent={formData} />}
+                </TabContentWrapper>
+              </TabsContent>
             </Tabs>
 
             <DialogFooter className="mt-4">
                 {error && <p className="text-red-500 text-sm mr-auto">{error}</p>}
                 <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-                <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                </Button>
+                {activeTab !== 'knowledge' && (
+                  <Button type="submit" form="agent-form" disabled={isLoading}>
+                      {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                )}
             </DialogFooter>
-          </form>
+          </div>
         )}
       </DialogContent>
     </Dialog>

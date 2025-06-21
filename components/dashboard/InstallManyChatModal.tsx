@@ -24,52 +24,43 @@ const installationSteps = [
     description: "Log into your ManyChat account or create a new one",
     icon: "🔗",
     details: "Go to manychat.com and sign in to your account",
-    image: "/images/Screenshot 2025-06-21 at 4.46.09 PM.png",
+    image: "/images/step1.png",
     showImage: true
   },
   {
     id: 2,
-    title: "Navigate to Apps",
-    description: "Find the Apps section in your ManyChat dashboard",
-    icon: "📱",
-    details: "Click on 'Apps' in the left sidebar menu to access the app marketplace",
-    image: "/images/Screenshot 2025-06-21 at 4.46.25 PM.png",
-    showImage: true
-  },
-  {
-    id: 3,
     title: "Install BBCore App",
     description: "Click the installation link to add BBCore to your ManyChat",
     icon: "⚡",
     details: "You'll be redirected to the BBCore app installation page. Click 'Install' to add the app to your ManyChat account.",
-    image: "/images/Screenshot 2025-06-21 at 4.47.59 PM.png",
+    image: "/images/step2.png",
+    showImage: true
+  },
+  {
+    id: 3,
+    title: "Select ManyChat Account",
+    description: "Choose which ManyChat account to install the agent on",
+    icon: "📱",
+    details: "Select the ManyChat account where you want to install your AI agent. Make sure you have admin access to the Facebook page associated with this account.",
+    image: "/images/step3.png",
     showImage: true
   },
   {
     id: 4,
-    title: "Authorize Access",
-    description: "Grant necessary permissions to BBCore",
-    icon: "🔐",
-    details: "Click 'Authorize' to allow BBCore to access your ManyChat account and Facebook page",
-    image: "/images/Screenshot 2025-06-21 at 4.48.56 PM.png",
-    showImage: true
-  },
-  {
-    id: 5,
     title: "Configure App Settings",
     description: "Set up your email and agent ID in the app settings",
     icon: "⚙️",
     details: "After installation, go to the app settings and enter your email address and agent ID for proper integration",
-    image: "/images/Screenshot 2025-06-21 at 4.50.30 PM.png",
+    image: "/images/step4.png",
     showImage: true
   },
   {
-    id: 6,
-    title: "Set Default Reply",
-    description: "Configure the default reply to use your AI agent",
+    id: 5,
+    title: "Set Default Reply & Go Live",
+    description: "Configure the default reply and activate your bot",
     icon: "💬",
-    details: "Go to Settings → Default Reply and add the 'Send message to your agent' action to handle all incoming messages",
-    image: "/images/Screenshot 2025-06-21 at 4.50.50 PM.png",
+    details: "Go to Settings → Default Reply, add the 'Send message to your agent' action, and click 'Set Live' to activate your bot",
+    image: ["/images/step5a.png", "/images/step5b.png"],
     showImage: true
   }
 ]
@@ -181,23 +172,28 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
               </p>
               
               {/* Screenshot */}
-              {currentStepData.showImage && (
+              {currentStepData.showImage && currentStepData.image && (
                 <div className="mb-6">
                   <div className="bg-white p-4 rounded-lg border shadow-sm">
-                    <Image
-                      src={currentStepData.image}
-                      alt={`Step ${currentStep} - ${currentStepData.title}`}
-                      width={800}
-                      height={600}
-                      className="w-full h-auto rounded-lg border"
-                      style={{ objectFit: 'contain' }}
-                    />
+                    <div className={`grid gap-4 ${Array.isArray(currentStepData.image) ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                      {(Array.isArray(currentStepData.image) ? currentStepData.image : [currentStepData.image]).map((imgSrc, index) => (
+                        <Image
+                          key={index}
+                          src={imgSrc}
+                          alt={`Step ${currentStep} - ${currentStepData.title} - Image ${index + 1}`}
+                          width={800}
+                          height={600}
+                          className="w-full h-auto rounded-lg border"
+                          style={{ objectFit: 'contain' }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Special content for step 3 (installation link) */}
-              {currentStep === 3 && (
+              {/* Special content for step 2 (installation link) */}
+              {currentStep === 2 && (
                 <div className="bg-white p-4 rounded-lg border">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -238,8 +234,8 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
                 </div>
               )}
 
-              {/* Special content for step 5 (configuration) */}
-              {currentStep === 5 && (
+              {/* Special content for step 4 (configuration) */}
+              {currentStep === 4 && (
                 <div className="bg-white p-4 rounded-lg border space-y-4">
                   <div className="flex items-center space-x-2">
                     <Settings className="w-5 h-5 text-blue-600" />
@@ -296,8 +292,8 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
                 </div>
               )}
 
-              {/* Special content for step 6 (default reply) */}
-              {currentStep === 6 && (
+              {/* Special content for step 5 (default reply) */}
+              {currentStep === 5 && (
                 <div className="bg-white p-4 rounded-lg border space-y-4">
                   <div className="flex items-center space-x-2">
                     <MessageSquare className="w-5 h-5 text-green-600" />
@@ -307,7 +303,7 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
                   <div className="space-y-3">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-800">
-                        <strong>Step 1:</strong> Go to Settings → Default Reply in your ManyChat dashboard
+                        <strong>Step 1:</strong> Go to Settings → Default Reply in your ManyChat dashboard. Select an existing default reply or create a new one.
                       </p>
                     </div>
                     
@@ -324,9 +320,18 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
                     </div>
                   </div>
                   
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-red-600 font-bold">⚠️</span>
+                      <p className="text-sm text-red-800">
+                        <strong>Don't forget:</strong> Click "Set Live" after configuring to activate your bot!
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                     <p className="text-sm text-green-800">
-                      <strong>✅ Success:</strong> Once configured, all messages to your Facebook page will be automatically routed to your AI agent!
+                      <strong>✅ Success:</strong> Once configured and set live, all messages to your Facebook page will be automatically routed to your AI agent!
                     </p>
                   </div>
                 </div>
@@ -413,11 +418,17 @@ export function InstallManyChatModal({ isOpen, onClose, installLink, agentName, 
               <div className="flex items-start space-x-2">
                 <Badge variant="secondary" className="bg-yellow-200 text-yellow-800">Tip 2</Badge>
                 <p className="text-sm text-yellow-800">
-                  Double-check your email and agent ID in the app settings for proper integration
+                  Ensure you're on ManyChat Pro plan to access custom app integrations
                 </p>
               </div>
               <div className="flex items-start space-x-2">
                 <Badge variant="secondary" className="bg-yellow-200 text-yellow-800">Tip 3</Badge>
+                <p className="text-sm text-yellow-800">
+                  Double-check your email and agent ID in the app settings for proper integration
+                </p>
+              </div>
+              <div className="flex items-start space-x-2">
+                <Badge variant="secondary" className="bg-yellow-200 text-yellow-800">Tip 4</Badge>
                 <p className="text-sm text-yellow-800">
                   Test your bot by sending a message to your Facebook page after setup
                 </p>

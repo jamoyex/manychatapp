@@ -8,6 +8,7 @@ import { getCurrentUser, getAgents, logoutUser, getAgentInstallStatus, getManyCh
 import { CreateAgentModal } from '@/components/dashboard/CreateAgentModal'
 import { ViewAgentModal } from '@/components/dashboard/ViewAgentModal'
 import { EditAgentModal } from '@/components/dashboard/EditAgentModal'
+import { InstallManyChatModal } from '@/components/dashboard/InstallManyChatModal'
 
 interface User {
   id: number
@@ -38,6 +39,8 @@ export default function DashboardPage() {
   const [viewingAgentId, setViewingAgentId] = useState<number | null>(null)
   const [editingAgentId, setEditingAgentId] = useState<number | null>(null)
   const [installLink, setInstallLink] = useState<string>('')
+  const [installModalOpen, setInstallModalOpen] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -114,11 +117,9 @@ export default function DashboardPage() {
     setAgents(prevAgents => prevAgents.map(agent => agent.id === updatedAgent.id ? updatedAgent : agent))
   }
 
-  const handleInstallClick = (agentId: number) => {
-    if (installLink) {
-      // Open ManyChat installation link in new tab
-      window.open(installLink, '_blank')
-    }
+  const handleInstallClick = (agent: Agent) => {
+    setSelectedAgent(agent)
+    setInstallModalOpen(true)
   }
 
   // Active agents are those that exist in app_installs table
@@ -264,7 +265,7 @@ export default function DashboardPage() {
                         <Button 
                           size="sm" 
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                          onClick={() => handleInstallClick(agent.id)}
+                          onClick={() => handleInstallClick(agent)}
                         >
                           Install on ManyChat
                         </Button>
@@ -277,6 +278,8 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Modals */}
       <ViewAgentModal
         agentId={viewingAgentId}
         isOpen={viewingAgentId !== null}
@@ -287,6 +290,12 @@ export default function DashboardPage() {
         isOpen={editingAgentId !== null}
         onClose={() => setEditingAgentId(null)}
         onAgentUpdated={handleAgentUpdated}
+      />
+      <InstallManyChatModal
+        isOpen={installModalOpen}
+        onClose={() => setInstallModalOpen(false)}
+        installLink={installLink}
+        agentName={selectedAgent?.bot_name || ''}
       />
     </div>
   )

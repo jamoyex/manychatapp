@@ -1,25 +1,27 @@
-# BBCore AI Chatbot SaaS - Complete Authentication System
+# ManyChat App - AI Chatbot SaaS Platform
 
-A modern, full-stack AI Chatbot SaaS platform with user authentication, registration, and dashboard built with Next.js 15, React 18, TypeScript, Shadcn UI, and Node.js backend.
+A modern, full-stack AI Chatbot SaaS platform with user authentication, agent management, and ManyChat integration built with Next.js 15, React 19, TypeScript, and Shadcn UI.
 
-## Features
+## 🚀 Features
 
 - 🔐 **Complete Authentication**: Register, login, logout with session management
-- 🎨 **Modern Design**: Clean, professional interface with gradient backgrounds
-- 📱 **Responsive**: Mobile-first design that works on all devices
-- ⚡ **Fast**: Built with Next.js 15 and React 18 for optimal performance
-- 🎯 **Accessible**: Proper form labels and keyboard navigation
+- 🤖 **AI Agent Management**: Create, edit, and manage chatbot agents
+- 📱 **Responsive Design**: Mobile-first design that works on all devices
+- ⚡ **Modern Stack**: Built with Next.js 15 and React 19 for optimal performance
+- 🎨 **Beautiful UI**: Clean interface with Shadcn UI components
 - 🔒 **Secure**: Password hashing, session management, and form validation
 - 📊 **Dashboard**: User dashboard with agent management and statistics
 
-## Tech Stack
+## 🛠 Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **UI Library**: React 18
+- **UI Library**: React 19
 - **Styling**: Tailwind CSS
 - **Components**: Shadcn UI + Radix UI
 - **Language**: TypeScript
+- **State Management**: Zustand
+- **Data Fetching**: TanStack Query
 
 ### Backend
 - **Runtime**: Node.js with Express
@@ -27,77 +29,81 @@ A modern, full-stack AI Chatbot SaaS platform with user authentication, registra
 - **Authentication**: bcryptjs + express-session
 - **Security**: CORS, password hashing
 
-## Getting Started
+## 📦 Installation
 
-### 1. Install Dependencies
+### Prerequisites
+- Node.js 18+ 
+- PostgreSQL 12+
+- npm or yarn
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/jamoyex/manychatapp.git
+cd manychatapp
+```
+
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-### 2. Environment Setup
-Create a `.env` file in the root directory with your database credentials:
+### 3. Environment Setup
+Create a `.env` file in the root directory:
 ```env
-DB_HOST=postgres_host
+# Database Configuration
+DB_HOST=your_postgres_host
 DB_PORT=5432
-DB_USER=postgres_username
-DB_PASS=postgres_password
-DB_NAME=postgres_db_name
+DB_USER=your_postgres_username
+DB_PASS=your_postgres_password
+DB_NAME=your_database_name
+
+# Session Configuration
 SESSION_SECRET=your-super-secret-session-key-change-this-in-production
+
+# Application Configuration
 NODE_ENV=development
 PORT=3000
 ```
 
-### 3. Database Setup
+### 4. Database Setup
 Run the SQL schema in your PostgreSQL database:
 ```bash
-psql -h 178.16.143.118 -U BBCore8.0 -d "Core 8.0" -f schema_pg.sql
+psql -h your_host -U your_username -d your_database -f schema_pg.sql
 ```
 
-### 4. Start the Application
-Run both frontend and backend simultaneously:
+### 5. Start Development
 ```bash
+# Run both frontend and backend
 npm run dev:full
+
+# Or run separately
+npm run server  # Backend on port 3001
+npm run dev     # Frontend on port 3000
 ```
 
-Or run them separately:
-```bash
-# Terminal 1 - Backend
-npm run server
-
-# Terminal 2 - Frontend
-npm run dev
-```
-
-### 5. Access the Application
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-bbcorenew/
-├── app/
-│   ├── globals.css          # Global styles and Tailwind config
-│   ├── layout.tsx           # Root layout component
-│   ├── page.tsx             # Login page
-│   ├── register/
-│   │   └── page.tsx         # Registration page
-│   └── dashboard/
-│       └── page.tsx         # Dashboard page
-├── components/
-│   └── ui/                  # Shadcn UI components
-│       ├── button.tsx
-│       ├── input.tsx
-│       ├── label.tsx
-│       └── card.tsx
-├── lib/
-│   └── utils.ts             # Utility functions
-├── server.js                # Express backend server
-├── schema_pg.sql            # Database schema
+manychatapp/
+├── app/                    # Next.js App Router
+│   ├── dashboard/         # Dashboard pages
+│   │   ├── agent/        # Agent management
+│   │   └── page.tsx      # Main dashboard
+│   ├── register/         # Registration page
+│   ├── globals.css       # Global styles
+│   ├── layout.tsx        # Root layout
+│   └── page.tsx          # Login page
+├── components/           # React components
+│   ├── auth/            # Authentication components
+│   ├── dashboard/       # Dashboard components
+│   └── ui/              # Shadcn UI components
+├── lib/                 # Utility functions
+├── routes/              # Express API routes
+├── schema_pg.sql        # Database schema
 └── package.json
 ```
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - User registration
@@ -107,24 +113,11 @@ bbcorenew/
 
 ### Agents
 - `GET /api/agents` - Get user's AI agents
+- `POST /api/agents` - Create new agent
+- `PUT /api/agents/:id` - Update agent
+- `DELETE /api/agents/:id` - Delete agent
 
-## User Flow
-
-1. **Registration**: Users can create new accounts at `/register`
-2. **Login**: Existing users can sign in at `/` (home page)
-3. **Dashboard**: After authentication, users are redirected to `/dashboard`
-4. **Agent Management**: View and manage AI chatbot agents
-5. **Logout**: Users can sign out from the dashboard
-
-## Database Schema
-
-The project includes a PostgreSQL schema for:
-- **Users**: Authentication and user management
-- **Agents**: AI chatbot configurations
-- **App Installs**: ManyChat integrations
-- **Messages**: Chat message history
-
-## Security Features
+## 🔐 Security Features
 
 - **Password Hashing**: bcryptjs with salt rounds
 - **Session Management**: Express sessions with secure cookies
@@ -132,21 +125,50 @@ The project includes a PostgreSQL schema for:
 - **Input Validation**: Server-side validation for all forms
 - **SQL Injection Protection**: Parameterized queries
 
-## Development
+## 🎯 User Flow
 
-- **TypeScript**: Full type safety throughout the application
+1. **Registration**: Users create accounts at `/register`
+2. **Login**: Users sign in at the home page
+3. **Dashboard**: Authenticated users access `/dashboard`
+4. **Agent Management**: Create and manage AI chatbot agents
+5. **ManyChat Integration**: Connect agents to ManyChat platform
+
+## 🚀 Development
+
+### Code Style
+- **TypeScript**: Full type safety
 - **ESLint**: Code quality and consistency
-- **Hot Reload**: Both frontend and backend support hot reloading
-- **Error Handling**: Comprehensive error handling and user feedback
+- **Prettier**: Code formatting
+- **Tailwind**: Utility-first CSS
 
-## Next Steps
+### Hot Reload
+Both frontend and backend support hot reloading for fast development.
 
-1. **Agent Creation**: Build the agent creation form
-2. **ManyChat Integration**: Implement ManyChat API integration
-3. **Message History**: Add chat message viewing and management
-4. **Analytics**: Add usage statistics and reporting
-5. **User Settings**: Add user profile and settings management
+## 📈 Roadmap
 
-## License
+- [ ] ManyChat API integration
+- [ ] Real-time chat functionality
+- [ ] Analytics dashboard
+- [ ] User settings and profiles
+- [ ] Multi-tenant support
+- [ ] Advanced agent configurations
 
-© 2024 BBCore. All rights reserved. 
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support, email support@manychatapp.com or create an issue in this repository.
+
+---
+
+Built with ❤️ using Next.js, React, and TypeScript 

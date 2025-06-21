@@ -1,40 +1,40 @@
-# ManyChat App - AI Chatbot SaaS Platform
+# BBCore AI Chatbot SaaS Platform
 
-A modern, full-stack AI Chatbot SaaS platform with user authentication, agent management, and ManyChat integration built with Next.js 15, React 19, TypeScript, and Shadcn UI.
+A modern, full-stack AI Chatbot SaaS platform with user authentication, comprehensive agent management, and ManyChat integration. Built with Next.js 15, Express.js, PostgreSQL, and Shadcn UI.
 
 ## 🚀 Features
 
 - 🔐 **Complete Authentication**: Register, login, logout with session management
-- 🤖 **AI Agent Management**: Create, edit, and manage chatbot agents
-- 📱 **Responsive Design**: Mobile-first design that works on all devices
-- ⚡ **Modern Stack**: Built with Next.js 15 and React 19 for optimal performance
-- 🎨 **Beautiful UI**: Clean interface with Shadcn UI components
+- 🤖 **AI Agent Management**: Create, edit, view, and manage chatbot agents with detailed configurations
+- 📱 **Responsive Design**: Mobile-first design with modern UI components
+- ⚡ **Hybrid Architecture**: Next.js frontend with Express.js API backend
+- 🎨 **Modern UI**: Beautiful interface with Shadcn UI and Radix components
 - 🔒 **Secure**: Password hashing, session management, and form validation
-- 📊 **Dashboard**: User dashboard with agent management and statistics
+- 📊 **Dashboard**: Comprehensive dashboard with agent management and statistics
+- 🔗 **ManyChat Ready**: Database schema designed for ManyChat integration
 
 ## 🛠 Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **UI Library**: React 19
+- **UI Library**: React 18
 - **Styling**: Tailwind CSS
 - **Components**: Shadcn UI + Radix UI
 - **Language**: TypeScript
-- **State Management**: Zustand
-- **Data Fetching**: TanStack Query
+- **Icons**: Lucide React
 
 ### Backend
-- **Runtime**: Node.js with Express
+- **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL
 - **Authentication**: bcryptjs + express-session
-- **Security**: CORS, password hashing
+- **Security**: CORS, password hashing, SSL support
 
 ## 📦 Installation
 
 ### Prerequisites
 - Node.js 18+ 
 - PostgreSQL 12+
-- npm or yarn
+- npm
 
 ### 1. Clone the Repository
 ```bash
@@ -73,21 +73,22 @@ psql -h your_host -U your_username -d your_database -f schema_pg.sql
 
 ### 5. Start Development
 ```bash
-# Run both frontend and backend
-npm run dev:full
+# Start the application (both frontend and backend)
+npm run dev
 
-# Or run separately
-npm run server  # Backend on port 3001
-npm run dev     # Frontend on port 3000
+# Or build for production
+npm run build
+npm start
 ```
 
 ## 📁 Project Structure
 
 ```
-manychatapp/
+bbcore-saas/
 ├── app/                    # Next.js App Router
 │   ├── dashboard/         # Dashboard pages
 │   │   ├── agent/        # Agent management
+│   │   │   └── [agentId]/ # Dynamic agent pages
 │   │   └── page.tsx      # Main dashboard
 │   ├── register/         # Registration page
 │   ├── globals.css       # Global styles
@@ -95,11 +96,32 @@ manychatapp/
 │   └── page.tsx          # Login page
 ├── components/           # React components
 │   ├── auth/            # Authentication components
+│   │   ├── authForm.tsx
+│   │   └── authLayout.tsx
 │   ├── dashboard/       # Dashboard components
+│   │   ├── AgentFormModal.tsx
+│   │   ├── CreateAgentModal.tsx
+│   │   ├── EditAgentModal.tsx
+│   │   └── ViewAgentModal.tsx
 │   └── ui/              # Shadcn UI components
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── dialog.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── progress.tsx
+│       ├── tabs.tsx
+│       └── textarea.tsx
 ├── lib/                 # Utility functions
+│   ├── auth.ts
+│   └── utils.ts
 ├── routes/              # Express API routes
+│   ├── agents.js        # Agent management API
+│   └── auth.js          # Authentication API
+├── app.js               # Express server + Next.js integration
 ├── schema_pg.sql        # Database schema
+├── components.json      # Shadcn UI configuration
+├── tailwind.config.js   # Tailwind configuration
 └── package.json
 ```
 
@@ -116,33 +138,66 @@ manychatapp/
 - `POST /api/agents` - Create new agent
 - `PUT /api/agents/:id` - Update agent
 - `DELETE /api/agents/:id` - Delete agent
+- `GET /api/agents/:id` - Get specific agent
+
+## 🗄️ Database Schema
+
+The project includes a comprehensive PostgreSQL schema for:
+
+### Users Table
+- User authentication and profile management
+- Email, name, password (hashed), timestamps
+
+### Agents Table
+- Comprehensive AI agent configurations
+- Company details, social media links, business information
+- Bot personality, goals, and tone settings
+- ManyChat integration fields
+
+### App Installs Table
+- ManyChat page connections
+- App tokens and version management
+- User-agent relationships
+
+### Messages Table
+- Chat message history
+- Support for user, agent, and AI message types
+- ManyChat user tracking
+
+## 🎯 User Flow
+
+1. **Registration**: Users create accounts at `/register`
+2. **Login**: Users sign in at the home page (`/`)
+3. **Dashboard**: Authenticated users access `/dashboard`
+4. **Agent Management**: 
+   - Create new agents with detailed configurations
+   - Edit existing agent settings
+   - View agent details and performance
+   - Manage ManyChat integrations
+5. **Agent Details**: Access specific agent pages at `/dashboard/agent/[agentId]`
 
 ## 🔐 Security Features
 
 - **Password Hashing**: bcryptjs with salt rounds
 - **Session Management**: Express sessions with secure cookies
-- **CORS Protection**: Configured for frontend domain
-- **Input Validation**: Server-side validation for all forms
 - **SQL Injection Protection**: Parameterized queries
-
-## 🎯 User Flow
-
-1. **Registration**: Users create accounts at `/register`
-2. **Login**: Users sign in at the home page
-3. **Dashboard**: Authenticated users access `/dashboard`
-4. **Agent Management**: Create and manage AI chatbot agents
-5. **ManyChat Integration**: Connect agents to ManyChat platform
+- **Input Validation**: Server-side validation for all forms
+- **SSL Support**: Production-ready SSL configuration
 
 ## 🚀 Development
 
-### Code Style
-- **TypeScript**: Full type safety
-- **ESLint**: Code quality and consistency
-- **Prettier**: Code formatting
-- **Tailwind**: Utility-first CSS
+### Architecture
+This is a **hybrid application** that combines:
+- **Next.js 15** for the frontend and routing
+- **Express.js** for API endpoints and server-side logic
+- **PostgreSQL** for data persistence
+- **Session-based authentication** with bcryptjs
 
-### Hot Reload
-Both frontend and backend support hot reloading for fast development.
+### Key Features
+- **Single Server**: Both frontend and API run on the same port
+- **Hot Reload**: Development mode with automatic reloading
+- **TypeScript**: Full type safety throughout
+- **Component Library**: Shadcn UI with Radix primitives
 
 ## 📈 Roadmap
 
@@ -152,6 +207,8 @@ Both frontend and backend support hot reloading for fast development.
 - [ ] User settings and profiles
 - [ ] Multi-tenant support
 - [ ] Advanced agent configurations
+- [ ] Message history viewing
+- [ ] Performance monitoring
 
 ## 🤝 Contributing
 
@@ -167,8 +224,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support, email support@manychatapp.com or create an issue in this repository.
+For support, create an issue in this repository or contact the development team.
 
 ---
 
-Built with ❤️ using Next.js, React, and TypeScript 
+Built with ❤️ by BBCore Team using Next.js, Express, and PostgreSQL 

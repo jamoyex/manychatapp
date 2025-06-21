@@ -91,6 +91,30 @@ export async function getAgents(): Promise<{ agents: any[] }> {
   return response.json()
 }
 
+export async function getAgentInstallStatus(agentId: number): Promise<{ isInstalled: boolean; agentId: number }> {
+  const response = await fetch(`${API_BASE_URL}/agents/${agentId}/install-status`, {
+    credentials: 'include'
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to check install status')
+  }
+
+  return response.json()
+}
+
+export async function getManyChatInstallLink(): Promise<{ installLink: string }> {
+  const response = await fetch(`${API_BASE_URL}/agents/install-link`, {
+    credentials: 'include'
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to get installation link')
+  }
+
+  return response.json()
+}
+
 // Validation functions
 export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

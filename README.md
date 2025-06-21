@@ -60,6 +60,9 @@ DB_NAME=your_database_name
 # Session Configuration
 SESSION_SECRET=your-super-secret-session-key-change-this-in-production
 
+# ManyChat Integration
+MANYCHAT_INSTALL_LINK=https://your-manychat-installation-link.com
+
 # Application Configuration
 NODE_ENV=development
 PORT=3000

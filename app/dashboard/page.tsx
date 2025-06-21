@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { getCurrentUser, getAgents, logoutUser } from '@/lib/auth'
+import { getCurrentUser, getAgents, logoutUser, getAgentInstallStatus, getManyChatInstallLink } from '@/lib/auth'
 import { CreateAgentModal } from '@/components/dashboard/CreateAgentModal'
 import { ViewAgentModal } from '@/components/dashboard/ViewAgentModal'
 import { EditAgentModal } from '@/components/dashboard/EditAgentModal'
@@ -25,6 +25,7 @@ interface Agent {
   is_active: boolean
   created_at: string
   status: string
+  isInstalled?: boolean
 }
 
 export default function DashboardPage() {
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false)
   const [viewingAgentId, setViewingAgentId] = useState<number | null>(null)
   const [editingAgentId, setEditingAgentId] = useState<number | null>(null)
+  const [installLink, setInstallLink] = useState<string>('')
 
   useEffect(() => {
     checkAuth()
@@ -46,8 +48,11 @@ export default function DashboardPage() {
       const { user } = await getCurrentUser()
       setUser(user)
       
-      // Fetch user's agents
-      await fetchAgents()
+      // Fetch user's agents and install link
+      await Promise.all([
+        fetchAgents(),
+        fetchInstallLink()
+      ])
     } catch (error) {
       console.error('Auth check failed:', error)
       router.push('/')
@@ -59,9 +64,32 @@ export default function DashboardPage() {
   const fetchAgents = async () => {
     try {
       const { agents } = await getAgents()
-      setAgents(agents)
+      
+      // Check install status for each agent
+      const agentsWithInstallStatus = await Promise.all(
+        agents.map(async (agent) => {
+          try {
+            const { isInstalled } = await getAgentInstallStatus(agent.id)
+            return { ...agent, isInstalled }
+          } catch (error) {
+            console.error(`Failed to check install status for agent ${agent.id}:`, error)
+            return { ...agent, isInstalled: false }
+          }
+        })
+      )
+      
+      setAgents(agentsWithInstallStatus)
     } catch (error) {
       console.error('Failed to fetch agents:', error)
+    }
+  }
+
+  const fetchInstallLink = async () => {
+    try {
+      const { installLink } = await getManyChatInstallLink()
+      setInstallLink(installLink)
+    } catch (error) {
+      console.error('Failed to fetch install link:', error)
     }
   }
 
@@ -86,7 +114,15 @@ export default function DashboardPage() {
     setAgents(prevAgents => prevAgents.map(agent => agent.id === updatedAgent.id ? updatedAgent : agent))
   }
 
-  const activeAgentsCount = agents.filter(agent => agent.status === 'active').length
+  const handleInstallClick = (agentId: number) => {
+    if (installLink) {
+      // Open ManyChat installation link in new tab
+      window.open(installLink, '_blank')
+    }
+  }
+
+  // Active agents are those that exist in app_installs table
+  const activeAgentsCount = agents.filter(agent => agent.isInstalled).length
 
   if (isLoading) {
     return (
@@ -150,7 +186,7 @@ export default function DashboardPage() {
                 {activeAgentsCount}
               </div>
               <p className="text-xs text-muted-foreground">
-                Currently running
+                Installed on ManyChat
               </p>
             </CardContent>
           </Card>
@@ -202,8 +238,10 @@ export default function DashboardPage() {
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <CardTitle>{agent.bot_name}</CardTitle>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {agent.status ? agent.status.charAt(0).toUpperCase() + agent.status.slice(1) : ''}
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        agent.isInstalled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {agent.isInstalled ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                     <CardDescription>{agent.company_name}</CardDescription>
@@ -213,13 +251,24 @@ export default function DashboardPage() {
                       <p><strong>Industry:</strong> {agent.industry}</p>
                       <p><strong>Created:</strong> {new Date(agent.created_at).toLocaleDateString()}</p>
                     </div>
-                    <div className="mt-4 flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingAgentId(agent.id)}>
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewingAgentId(agent.id)}>
-                        View
-                      </Button>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingAgentId(agent.id)}>
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewingAgentId(agent.id)}>
+                          View
+                        </Button>
+                      </div>
+                      {!agent.isInstalled && installLink && (
+                        <Button 
+                          size="sm" 
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={() => handleInstallClick(agent.id)}
+                        >
+                          Install on ManyChat
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

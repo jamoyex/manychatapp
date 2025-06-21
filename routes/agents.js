@@ -36,6 +36,65 @@ module.exports = (pool) => {
     }
   });
 
+  // GET /api/agents/:id/install-status - Check if agent is installed on ManyChat
+  router.get('/:id/install-status', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { id } = req.params;
+      
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [id, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Check if agent is installed in ManyChat
+      const installResult = await pool.query(
+        'SELECT id FROM app_installs WHERE agent_id = $1 AND is_active = true',
+        [id]
+      );
+
+      const isInstalled = installResult.rows.length > 0;
+
+      res.json({ 
+        isInstalled,
+        agentId: id
+      });
+
+    } catch (error) {
+      console.error('Check install status error:', error);
+      res.status(500).json({ error: 'Failed to check install status' });
+    }
+  });
+
+  // GET /api/agents/install-link - Get ManyChat installation link
+  router.get('/install-link', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const installLink = process.env.MANYCHAT_INSTALL_LINK;
+      
+      if (!installLink) {
+        return res.status(500).json({ error: 'ManyChat installation link not configured' });
+      }
+
+      res.json({ installLink });
+
+    } catch (error) {
+      console.error('Get install link error:', error);
+      res.status(500).json({ error: 'Failed to get installation link' });
+    }
+  });
+
   // POST /api/agents - Create a new agent
   router.post('/', async (req, res) => {
     if (!req.session.userId) {

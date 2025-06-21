@@ -63,7 +63,14 @@ SESSION_SECRET=your-super-secret-session-key-change-this-in-production
 # ManyChat Integration
 MANYCHAT_INSTALL_LINK=https://your-manychat-installation-link.com
 
-# Knowledge Base Webhook
+# Cloudflare R2 for Knowledge Base File Storage
+R2_ACCOUNT_ID=your_r2_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET_NAME=your_r2_bucket_name
+R2_PUBLIC_URL=your_r2_public_url # e.g., https://pub-xxxxxxxx.r2.dev
+
+# Knowledge Base Training Webhook
 KNOWLEDGE_BASE_WEBHOOK_URL=https://your-n8n-or-zapier-webhook-url.com
 
 # Application Configuration

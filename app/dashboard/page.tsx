@@ -239,12 +239,12 @@ export default function DashboardPage() {
                     </div>
                     <div className="mt-4 space-y-2">
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingAgentId(agent.id)}>
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewingAgentId(agent.id)}>
-                          View
-                        </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingAgentId(agent.id)}>
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewingAgentId(agent.id)}>
+                        View
+                      </Button>
                       </div>
                       {!agent.is_installed && installLink && (
                         <Button 

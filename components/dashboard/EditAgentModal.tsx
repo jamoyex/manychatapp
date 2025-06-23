@@ -100,12 +100,12 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
               </TabsList>
               
               <TabsContent value="core">
-                  <TabContentWrapper>
-                    <div><Label htmlFor="agent_id">Agent ID</Label><Input id="agent_id" name="agent_id" value={formData.agent_id || ''} readOnly disabled className="font-mono bg-gray-100" /></div>
-                    <div><Label htmlFor="bot_name">Bot Name</Label><Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} /></div>
-                    <div><Label htmlFor="bot_primary_goal">Primary Goal</Label><Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} /></div>
-                    <div><Label htmlFor="bot_tone_for_replies">Tone for Replies</Label><Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} /></div>
-                  </TabContentWrapper>
+                <TabContentWrapper>
+                  <div><Label htmlFor="agent_id">Agent ID</Label><Input id="agent_id" name="agent_id" value={formData.agent_id || ''} readOnly disabled className="font-mono bg-gray-100" /></div>
+                  <div><Label htmlFor="bot_name">Bot Name</Label><Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} /></div>
+                  <div><Label htmlFor="bot_primary_goal">Primary Goal</Label><Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} /></div>
+                  <div><Label htmlFor="bot_tone_for_replies">Tone for Replies</Label><Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} /></div>
+                </TabContentWrapper>
               </TabsContent>
 
               <TabsContent value="company">
@@ -153,8 +153,8 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                 <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
                 {activeTab !== 'knowledge' && (
                   <Button type="submit" form="agent-form" disabled={isLoading}>
-                      {isLoading ? 'Saving...' : 'Save Changes'}
-                  </Button>
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
                 )}
             </DialogFooter>
           </form>

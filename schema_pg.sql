@@ -94,7 +94,7 @@ CREATE TRIGGER update_agents_updated_at BEFORE UPDATE ON agents
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_app_installs_updated_at BEFORE UPDATE ON app_installs
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
 
 -- Knowledge Base table for storing file metadata
 CREATE TABLE knowledge_base (

@@ -44,16 +44,15 @@ async function getAgent(agentId: string): Promise<Agent> {
     return data.agent;
 }
 
-interface PageProps {
-    params: {
-        agentId: string;
-    };
-    searchParams: { [key: string]: string | string[] | undefined };
+type PageProps = {
+    params: Promise<{ agentId: string }>;
+    searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 export default async function ViewAgentPage({ params, searchParams }: PageProps) {
-    const agent = await getAgent(params.agentId);
-    const agentIdNumber = parseInt(params.agentId, 10);
+    const resolvedParams = await params;
+    const agent = await getAgent(resolvedParams.agentId);
+    const agentIdNumber = parseInt(resolvedParams.agentId, 10);
     
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {

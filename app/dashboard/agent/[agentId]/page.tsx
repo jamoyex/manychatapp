@@ -44,7 +44,14 @@ async function getAgent(agentId: string): Promise<Agent> {
     return data.agent;
 }
 
-export default async function ViewAgentPage({ params }: { params: { agentId: string } }) {
+interface PageProps {
+    params: {
+        agentId: string;
+    };
+    searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function ViewAgentPage({ params, searchParams }: PageProps) {
     const agent = await getAgent(params.agentId);
     const agentIdNumber = parseInt(params.agentId, 10);
     

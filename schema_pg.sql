@@ -110,4 +110,23 @@ CREATE TABLE knowledge_base (
     last_updated TIMESTAMP
 );
 
-CREATE INDEX idx_knowledge_base_agent_id ON knowledge_base(agent_id); 
+CREATE INDEX idx_knowledge_base_agent_id ON knowledge_base(agent_id);
+
+-- Intent Mappings Table
+CREATE TABLE IF NOT EXISTS intent_mappings (
+    id SERIAL PRIMARY KEY,
+    agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    intent_name VARCHAR(255) NOT NULL,
+    manychat_flow_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(agent_id, intent_name)
+);
+
+CREATE INDEX idx_intent_mappings_agent_id ON intent_mappings(agent_id);
+
+-- Update trigger for intent_mappings
+CREATE TRIGGER update_intent_mappings_timestamp
+    BEFORE UPDATE ON intent_mappings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp(); 

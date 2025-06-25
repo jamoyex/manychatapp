@@ -489,5 +489,89 @@ module.exports = (pool) => {
     }
   });
 
+  // Get ManyChat flows for an agent
+  router.get('/:agentId/manychat-flows', async (req, res) => {
+    const { agentId } = req.params;
+    
+    try {
+      // Get the app token from app_installs
+      const { rows } = await pool.query(
+        'SELECT app_token FROM app_installs WHERE agent_id = $1',
+        [agentId]
+      );
+
+      if (!rows.length || !rows[0].app_token) {
+        return res.status(404).json({ error: 'ManyChat token not found for this agent' });
+      }
+
+      const appToken = rows[0].app_token;
+
+      // Make request to ManyChat API with exact headers
+      const response = await fetch('https://api.manychat.com/fb/page/getFlows', {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${appToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch flows from ManyChat');
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching ManyChat flows:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get intent mappings for an agent
+  router.get('/:agentId/intents', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const result = await pool.query(
+        'SELECT * FROM intent_mappings WHERE agent_id = $1 ORDER BY created_at DESC',
+        [agentId]
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error fetching intents:', error);
+      res.status(500).json({ error: 'Failed to fetch intents' });
+    }
+  });
+
+  // Create new intent mapping
+  router.post('/:agentId/intents', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { intent_name, manychat_flow_id } = req.body;
+
+      const result = await pool.query(
+        'INSERT INTO intent_mappings (agent_id, intent_name, manychat_flow_id) VALUES ($1, $2, $3) RETURNING *',
+        [agentId, intent_name, manychat_flow_id]
+      );
+
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error('Error creating intent:', error);
+      res.status(500).json({ error: 'Failed to create intent mapping' });
+    }
+  });
+
+  // Delete intent mapping
+  router.delete('/:agentId/intents/:intentId', async (req, res) => {
+    try {
+      const { intentId } = req.params;
+      await pool.query('DELETE FROM intent_mappings WHERE id = $1', [intentId]);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting intent:', error);
+      res.status(500).json({ error: 'Failed to delete intent mapping' });
+    }
+  });
+
   return router;
 }; 

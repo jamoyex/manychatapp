@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { KnowledgeBaseTab } from './KnowledgeBaseTab';
+import { IntentCheckerTab } from './IntentCheckerTab';
 
 interface AgentFormData {
   [key: string]: any;
@@ -32,6 +33,7 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('core');
+  const [activeAdvancedTab, setActiveAdvancedTab] = useState('knowledge');
 
   useEffect(() => {
     if (isOpen && agentId) {
@@ -78,6 +80,13 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
     }
   };
 
+  // Only update parent component when core agent data changes
+  const handleAgentDataUpdate = (updatedData: any) => {
+    if (activeTab !== 'advanced') {
+      onAgentUpdated(updatedData);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-3xl">
@@ -91,13 +100,19 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
         {isLoading && !Object.keys(formData).length ? (<p className="py-8 text-center">Loading data...</p>) : (
           <form id="agent-form" onSubmit={handleSubmit}>
             <Tabs defaultValue="core" className="w-full" onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="core">Core</TabsTrigger>
-                <TabsTrigger value="company">Company</TabsTrigger>
-                <TabsTrigger value="leader_product">Leader & Product</TabsTrigger>
-                <TabsTrigger value="links">Links</TabsTrigger>
-                <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
-              </TabsList>
+              <div className="relative w-full border-b">
+                <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                  <div className="min-w-max px-2">
+                    <TabsList className="h-12 inline-flex items-center gap-4">
+                      <TabsTrigger value="core">Core</TabsTrigger>
+                      <TabsTrigger value="company">Company</TabsTrigger>
+                      <TabsTrigger value="leader_product">Leader & Product</TabsTrigger>
+                      <TabsTrigger value="links">Links</TabsTrigger>
+                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
+              </div>
               
               <TabsContent value="core">
                 <TabContentWrapper>
@@ -141,17 +156,32 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                 </TabContentWrapper>
               </TabsContent>
 
-              <TabsContent value="knowledge">
-                <TabContentWrapper>
-                  {agentId && <KnowledgeBaseTab agentId={agentId} agent={formData} />}
-                </TabContentWrapper>
+              <TabsContent value="advanced">
+                <Tabs value={activeAdvancedTab} onValueChange={setActiveAdvancedTab} className="w-full">
+                  <div className="mb-4 border-b">
+                    <TabsList>
+                      <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
+                      <TabsTrigger value="intents">Intent Checker</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <TabsContent value="knowledge">
+                    <TabContentWrapper>
+                      {agentId && <KnowledgeBaseTab agentId={agentId} agent={formData} />}
+                    </TabContentWrapper>
+                  </TabsContent>
+                  <TabsContent value="intents">
+                    <TabContentWrapper>
+                      {agentId && <IntentCheckerTab agentId={agentId} />}
+                    </TabContentWrapper>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             </Tabs>
 
             <DialogFooter className="mt-4">
                 {error && <p className="text-red-500 text-sm mr-auto">{error}</p>}
                 <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-                {activeTab !== 'knowledge' && (
+                {activeTab !== 'advanced' && (
                   <Button type="submit" form="agent-form" disabled={isLoading}>
                     {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>

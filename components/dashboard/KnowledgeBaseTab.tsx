@@ -189,6 +189,28 @@ export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
 
   return (
     <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-blue-900 mb-2">Train Your AI Agent with Custom Knowledge</h3>
+        <p className="text-blue-800 text-sm">
+          Upload documents to give your AI agent specialized knowledge about your business, products, or services. 
+          Your agent will learn from these documents and use this information when chatting with users.
+        </p>
+        <div className="mt-3 space-y-2">
+          <p className="text-blue-800 text-sm flex items-center">
+            <FileText className="w-4 h-4 mr-2" />
+            Supported formats: PDF, DOCX
+          </p>
+          <p className="text-blue-800 text-sm flex items-center">
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Each file must be under 5MB, total limit 20MB
+          </p>
+          <p className="text-blue-800 text-sm flex items-center">
+            <Brain className="w-4 h-4 mr-2" />
+            Remember to click "Train Bot" after adding new files
+          </p>
+        </div>
+      </div>
+
       {/* Last Trained Info */}
       <Card>
         <CardHeader>

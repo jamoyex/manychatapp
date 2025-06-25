@@ -1,7 +1,4 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,49 +31,22 @@ const DetailItem = ({ label, value }: { label: string; value: string | undefined
     </div>
 );
 
-export default function ViewAgentPage({ params }: { params: { agentId: string } }) {
-    const agentId = params.agentId as string;
-
-    const [agent, setAgent] = useState<Agent | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        if (agentId) {
-            const fetchAgentDetails = async () => {
-                setIsLoading(true);
-                setError('');
-                try {
-                    const response = await fetch(`/api/agents/${agentId}`, {
-                        credentials: 'include'
-                    });
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Failed to fetch agent details');
-                    }
-                    setAgent(data.agent);
-                } catch (err) {
-                    setError(err instanceof Error ? err.message : 'An unknown error occurred');
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            fetchAgentDetails();
-        }
-    }, [agentId]);
-
-    if (isLoading) {
-        return <div className="p-8">Loading agent details...</div>
+async function getAgent(agentId: string): Promise<Agent> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/agents/${agentId}`, {
+        cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+        throw new Error('Failed to fetch agent');
     }
+    
+    const data = await response.json();
+    return data.agent;
+}
 
-    if (error) {
-        return <div className="p-8 text-red-500">Error: {error}</div>
-    }
-
-    if (!agent) {
-        return <div className="p-8">Agent not found.</div>
-    }
+export default async function ViewAgentPage({ params }: { params: { agentId: string } }) {
+    const agent = await getAgent(params.agentId);
+    const agentIdNumber = parseInt(params.agentId, 10);
     
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -161,13 +131,17 @@ export default function ViewAgentPage({ params }: { params: { agentId: string } 
                         </Card>
                     </TabsContent>
                     <TabsContent value="knowledge-base">
-                        <KnowledgeBaseTab agentId={String(params.agentId)} />
+                        <Suspense fallback={<div>Loading knowledge base...</div>}>
+                            <KnowledgeBaseTab agentId={agentIdNumber} />
+                        </Suspense>
                     </TabsContent>
                     <TabsContent value="intent-checker">
-                        <IntentCheckerTab agentId={String(params.agentId)} />
+                        <Suspense fallback={<div>Loading intent checker...</div>}>
+                            <IntentCheckerTab agentId={agentIdNumber} />
+                        </Suspense>
                     </TabsContent>
                 </Tabs>
             </div>
         </div>
-    );
+    ); 
 } 

@@ -13,6 +13,7 @@ interface User {
   id: number
   name: string
   email: string
+  core_credits: number
   created_at: string
 }
 
@@ -96,10 +97,18 @@ export default function DashboardPage() {
     }
   }
 
-  const handleAgentCreated = (newAgent: Agent) => {
+  const handleAgentCreated = async (newAgent: Agent) => {
     setAgents(prev => [...prev, newAgent])
     setSelectedAgent(newAgent)
     setCreateModalOpen(false)
+    
+    // Refresh user data to get updated credits
+    try {
+      const { user: updatedUser } = await getCurrentUser()
+      setUser(updatedUser)
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+    }
   }
 
   const handleAgentUpdated = (updatedAgent: Agent) => {
@@ -145,7 +154,10 @@ export default function DashboardPage() {
       />
       
       {agents.length === 0 ? (
-        <EmptyAgentState onCreateAgent={handleCreateAgent} />
+        <EmptyAgentState 
+          onCreateAgent={handleCreateAgent} 
+          userCredits={user?.core_credits || 0}
+        />
       ) : selectedAgent ? (
         <AgentConfigurationInterface 
           agent={selectedAgent} 
@@ -164,6 +176,7 @@ export default function DashboardPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onAgentCreated={handleAgentCreated}
+        userCredits={user?.core_credits || 0}
       />
       
       {/* Install ManyChat Modal */}

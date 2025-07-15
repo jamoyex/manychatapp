@@ -389,28 +389,72 @@ module.exports = (pool) => {
         return res.status(400).json({ error: 'Bot name is required.' });
       }
 
-      const agent_id = await generateAgentId(pool);
-
-      const newAgent = await pool.query(
-        `INSERT INTO agents (
-          owner_id, agent_id, bot_name, company_name, industry, support_email_address,
-          details_about_company, details_about_product_or_service, bot_tone_for_replies, bot_primary_goal
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-        [
-          req.session.userId,
-          agent_id,
-          bot_name,
-          company_name || null,
-          industry || null,
-          support_email_address || null,
-          company_description || null, // Mapped from details_about_company
-          target_audience_description || null, // Mapped from details_about_product_or_service
-          tone_and_style_guide || null, // Mapped from bot_tone_for_replies
-          specific_instructions || null // Mapped from bot_primary_goal
-        ]
+      // Check if user has enough credits
+      const userResult = await pool.query(
+        'SELECT core_credits FROM users WHERE id = $1',
+        [req.session.userId]
       );
 
-      res.status(201).json({ agent: newAgent.rows[0] });
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+
+      const userCredits = userResult.rows[0].core_credits;
+      if (userCredits < 1) {
+        return res.status(403).json({ 
+          error: 'Insufficient credits. You need at least 1 core credit to create an agent.',
+          currentCredits: userCredits,
+          requiredCredits: 1
+        });
+      }
+
+      const agent_id = await generateAgentId(pool);
+
+      // Use a transaction to ensure both agent creation and credit deduction succeed or fail together
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        // Create the agent
+        const newAgent = await client.query(
+          `INSERT INTO agents (
+            owner_id, agent_id, bot_name, company_name, industry, support_email_address,
+            details_about_company, details_about_product_or_service, bot_tone_for_replies, bot_primary_goal
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+          [
+            req.session.userId,
+            agent_id,
+            bot_name,
+            company_name || null,
+            industry || null,
+            support_email_address || null,
+            company_description || null, // Mapped from details_about_company
+            target_audience_description || null, // Mapped from details_about_product_or_service
+            tone_and_style_guide || null, // Mapped from bot_tone_for_replies
+            specific_instructions || null // Mapped from bot_primary_goal
+          ]
+        );
+
+        // Deduct 1 credit from user
+        await client.query(
+          'UPDATE users SET core_credits = core_credits - 1 WHERE id = $1',
+          [req.session.userId]
+        );
+
+        await client.query('COMMIT');
+
+        res.status(201).json({ 
+          agent: newAgent.rows[0],
+          creditsDeducted: 1,
+          remainingCredits: userCredits - 1
+        });
+
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
 
     } catch (error) {
       console.error('Create agent error:', error);

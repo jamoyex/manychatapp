@@ -12,6 +12,7 @@ interface CreateAgentModalProps {
   isOpen: boolean
   onClose: () => void
   onAgentCreated: (newAgent: any) => void
+  userCredits?: number
 }
 
 const STEPS = [
@@ -36,7 +37,7 @@ const INITIAL_STATE: { [key: string]: string } = {
   support_email_address: ''
 };
 
-export function CreateAgentModal({ isOpen, onClose, onAgentCreated }: CreateAgentModalProps) {
+export function CreateAgentModal({ isOpen, onClose, onAgentCreated, userCredits = 0 }: CreateAgentModalProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState(INITIAL_STATE)
   const [error, setError] = useState('')
@@ -96,6 +97,9 @@ export function CreateAgentModal({ isOpen, onClose, onAgentCreated }: CreateAgen
       const result = await response.json()
 
       if (!response.ok) {
+        if (result.error && result.error.includes('Insufficient credits')) {
+          throw new Error(`Insufficient credits. You have ${result.currentCredits || userCredits} credits but need ${result.requiredCredits || 1} to create an agent.`)
+        }
         throw new Error(result.error || 'Something went wrong')
       }
       
@@ -152,6 +156,13 @@ export function CreateAgentModal({ isOpen, onClose, onAgentCreated }: CreateAgen
           <Progress value={progress} className="w-full" />
         </DialogHeader>
         <div className="py-4 min-h-[150px] flex items-center">{renderStepContent()}</div>
+        {userCredits < 1 && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-4">
+            <p className="text-sm text-yellow-800 text-center">
+              ⚠️ You need at least 1 core credit to create an agent. You currently have {userCredits} credits.
+            </p>
+          </div>
+        )}
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
         <DialogFooter className="flex-col sm:flex-col sm:space-x-0">
           <div className="flex justify-between w-full">
@@ -159,7 +170,10 @@ export function CreateAgentModal({ isOpen, onClose, onAgentCreated }: CreateAgen
             
             <div className="flex gap-2">
               {currentStep > 1 && <Button variant="ghost" onClick={handleSkip} disabled={isSubmitting}>Skip</Button>}
-              <Button onClick={isLastStep ? handleSubmit : handleNext} disabled={isSubmitting}>
+              <Button 
+                onClick={isLastStep ? handleSubmit : handleNext} 
+                disabled={isSubmitting || (isLastStep && userCredits < 1)}
+              >
                 {isLastStep ? (isSubmitting ? 'Creating Agent...' : 'Finish & Create Agent') : 'Next'}
               </Button>
             </div>

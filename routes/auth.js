@@ -152,7 +152,7 @@ module.exports = (pool) => {
     }
 
     try {
-      const user = await pool.query('SELECT id, name, email, created_at FROM users WHERE id = $1', [req.session.userId]);
+      const user = await pool.query('SELECT id, name, email, core_credits, created_at FROM users WHERE id = $1', [req.session.userId]);
       if (user.rows.length === 0) {
         return res.status(401).json({ error: 'User not found' });
       }

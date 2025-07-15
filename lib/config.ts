@@ -5,7 +5,9 @@ export const AUTH_CONFIG = {
   ALLOWED_DOMAINS: [
     'localhost', // For development
     '127.0.0.1', // For development
-    ...(process.env.ALLOWED_AUTH_DOMAINS ? process.env.ALLOWED_AUTH_DOMAINS.split(',') : []),
+    'portal.botbuilders.com',
+    'app.automator.ai',
+    'manychat.botbuilders.cloud',
   ],
   
   // Additional security settings

@@ -61,12 +61,14 @@ function AuthRedirectContent() {
         const referrer = document.referrer
         const currentDomain = window.location.hostname
         
+
+        
         // Validate referrer using the config function
         const isAllowedReferrer = validateReferrer(referrer, currentDomain)
 
         if (!isAllowedReferrer) {
           setStatus('invalid-domain')
-          setMessage(`Access denied. This authentication link can only be accessed from authorized domains.`)
+          setMessage(`Access denied. This authentication link can only be accessed from authorized domains. Referrer: ${referrer || 'none'}, Domain: ${currentDomain}`)
           return
         }
 
@@ -96,12 +98,14 @@ function AuthRedirectContent() {
         const referrer = document.referrer
         const currentDomain = window.location.hostname
         
+
+        
         // Validate referrer using the config function
         const isAllowedReferrer = validateReferrer(referrer, currentDomain)
 
         if (!isAllowedReferrer) {
           setStatus('invalid-domain')
-          setMessage(`Access denied. This authentication link can only be accessed from authorized domains.`)
+          setMessage(`Access denied. This authentication link can only be accessed from authorized domains. Referrer: ${referrer || 'none'}, Domain: ${currentDomain}`)
           return
         }
 

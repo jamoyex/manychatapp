@@ -60,6 +60,9 @@ DB_NAME=your_database_name
 # Session Configuration
 SESSION_SECRET=your-super-secret-session-key-change-this-in-production
 
+# Authentication Security
+ALLOWED_AUTH_DOMAINS=portal.botbuilders.com,app.automator.ai
+
 # ManyChat Integration
 MANYCHAT_INSTALL_LINK=https://your-manychat-installation-link.com
 

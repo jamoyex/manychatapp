@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { KnowledgeBaseTab } from './KnowledgeBaseTab';
 import { IntentCheckerTab } from './IntentCheckerTab';
+import { EnhancedResponsesTab } from './EnhancedResponsesTab';
 
 interface AgentFormData {
   [key: string]: any;
@@ -162,6 +163,7 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                     <TabsList>
                       <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                       <TabsTrigger value="intents">Intent Checker</TabsTrigger>
+                      <TabsTrigger value="enhanced">Enhanced Responses</TabsTrigger>
                     </TabsList>
                   </div>
                   <TabsContent value="knowledge">
@@ -172,6 +174,11 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                   <TabsContent value="intents">
                     <TabContentWrapper>
                       {agentId && <IntentCheckerTab agentId={agentId} />}
+                    </TabContentWrapper>
+                  </TabsContent>
+                  <TabsContent value="enhanced">
+                    <TabContentWrapper>
+                      {agentId && <EnhancedResponsesTab agentId={agentId} agent={formData} />}
                     </TabContentWrapper>
                   </TabsContent>
                 </Tabs>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +13,26 @@ interface KnowledgeBaseTabProps {
   agent?: {
     last_trained?: string;
     is_training?: boolean;
+  };
+  onButtonStatesChange?: (states: {
+    upload: { canUpload: boolean; isUploading: boolean; label: string };
+    train: { canTrain: boolean; isTraining: boolean; label: string };
+  }) => void;
+  onAgentStateChange?: (agentUpdate: { is_training: boolean; last_trained?: string }) => void;
+}
+
+export interface KnowledgeBaseTabRef {
+  uploadFiles: () => void;
+  trainBot: () => void;
+  getUploadButtonState: () => {
+    canUpload: boolean;
+    isUploading: boolean;
+    label: string;
+  };
+  getTrainButtonState: () => {
+    canTrain: boolean;
+    isTraining: boolean;
+    label: string;
   };
 }
 
@@ -33,7 +53,12 @@ const ACCEPTED_FILE_TYPES = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
 };
 
-export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
+export const KnowledgeBaseTab = forwardRef<KnowledgeBaseTabRef, KnowledgeBaseTabProps>(({ 
+  agentId, 
+  agent,
+  onButtonStatesChange,
+  onAgentStateChange
+}, ref) => {
   const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,9 +86,13 @@ export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
         if (!freshAgent.is_training) {
           clearInterval(interval);
           fetchKnowledgeBase(); // Fetch updated file statuses
-          if (agent) {
-             agent.is_training = false; // Update local state
-             agent.last_trained = freshAgent.last_trained; // Update last trained time
+          
+          // Notify parent that training has completed
+          if (onAgentStateChange) {
+            onAgentStateChange({ 
+              is_training: false, 
+              last_trained: freshAgent.last_trained 
+            });
           }
         }
       } catch (error) {
@@ -157,16 +186,15 @@ export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
     setIsTraining(true);
     setError(null);
     try {
-      await trainBot(agentId);
-      // Optimistically update the UI to show training has started
-      if (agent) {
-        agent.is_training = true;
-        // Re-render the component with the new state
-        setKnowledgeFiles([...knowledgeFiles]); 
+      const result = await trainBot(agentId);
+      
+      // Notify parent that training has started
+      if (onAgentStateChange) {
+        onAgentStateChange({ is_training: true });
       }
-    } catch (err) {
-      setError('Failed to start training.');
-      console.error(err);
+    } catch (err: any) {
+      console.error('Training failed:', err);
+      setError(err.message || 'Failed to start training.');
     } finally {
       setIsTraining(false);
     }
@@ -186,6 +214,50 @@ export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
   }, [knowledgeFiles]);
 
   const totalFilesCount = knowledgeFiles.length;
+
+  // Notify parent about button state changes
+  useEffect(() => {
+    if (onButtonStatesChange) {
+      const uploadState = {
+        canUpload: newFiles.length > 0 && !isUploading && !agent?.is_training,
+        isUploading,
+        label: isUploading ? 'Uploading...' : 'Upload Files'
+      };
+      
+      const trainState = {
+        canTrain: knowledgeFiles.length > 0 && !isTraining && !agent?.is_training,
+        isTraining: isTraining || !!agent?.is_training,
+        label: isTraining ? 'Starting...' : 
+               agent?.is_training ? 'Training...' : 
+               hasUntrainedFiles ? 'Train Bot (Update)' : 'Train Bot'
+      };
+      
+
+      
+      onButtonStatesChange({
+        upload: uploadState,
+        train: trainState
+      });
+    }
+  }, [newFiles.length, isUploading, agent?.is_training, knowledgeFiles.length, isTraining, hasUntrainedFiles, onButtonStatesChange]);
+
+  // Expose functions to parent component via ref
+  useImperativeHandle(ref, () => ({
+    uploadFiles: handleUploadFiles,
+    trainBot: handleTrainBot,
+    getUploadButtonState: () => ({
+      canUpload: newFiles.length > 0 && !isUploading && !agent?.is_training,
+      isUploading,
+      label: isUploading ? 'Uploading...' : 'Upload Files'
+    }),
+    getTrainButtonState: () => ({
+      canTrain: knowledgeFiles.length > 0 && !isTraining && !agent?.is_training,
+      isTraining: isTraining || !!agent?.is_training,
+      label: isTraining ? 'Starting...' : 
+             agent?.is_training ? 'Training...' : 
+             hasUntrainedFiles ? 'Train Bot (Update)' : 'Train Bot'
+    })
+  }), [handleUploadFiles, handleTrainBot, newFiles.length, isUploading, agent?.is_training, knowledgeFiles.length, isTraining, hasUntrainedFiles]);
 
   return (
     <div className="space-y-6">
@@ -365,28 +437,9 @@ export function KnowledgeBaseTab({ agentId, agent }: KnowledgeBaseTabProps) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end space-x-4">
-        <Button 
-          onClick={handleUploadFiles}
-          disabled={newFiles.length === 0 || isUploading || agent?.is_training}
-        >
-          {isUploading ? 'Uploading...' : 'Upload Files'}
-        </Button>
-        
-        <Button 
-          onClick={handleTrainBot}
-          disabled={knowledgeFiles.length === 0 || isTraining || agent?.is_training}
-          variant="outline"
-          className="flex items-center space-x-2"
-        >
-          <Brain className="w-4 h-4" />
-          <span>
-            {isTraining ? 'Starting...' : 
-             agent?.is_training ? 'Training...' : 
-             hasUntrainedFiles ? 'Train Bot (Update)' : 'Train Bot'}
-          </span>
-        </Button>
-      </div>
+
     </div>
   );
-} 
+});
+
+KnowledgeBaseTab.displayName = 'KnowledgeBaseTab';

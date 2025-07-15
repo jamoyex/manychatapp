@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { IntentCheckerTab } from '@/components/dashboard/IntentCheckerTab'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { KnowledgeBaseTab } from '@/components/dashboard/KnowledgeBaseTab'
+import { EnhancedResponsesTab } from '@/components/dashboard/EnhancedResponsesTab'
 
 // It's good practice to have shared type definitions.
 // For now, we define it here.
@@ -22,6 +23,11 @@ interface Agent {
   specific_instructions: string;
   created_at: string;
   knowledge_base_urls: string[];
+  enhanced_responses_enabled?: boolean;
+  template_installed?: boolean;
+  loader_enabled?: boolean;
+  gallery_enabled?: boolean;
+  quick_replies_enabled?: boolean;
 }
 
 const DetailItem = ({ label, value }: { label: string; value: string | undefined | null }) => (
@@ -79,6 +85,7 @@ export default async function ViewAgentPage({ params, searchParams }: PageProps)
                         <TabsTrigger value="details">Details</TabsTrigger>
                         <TabsTrigger value="knowledge-base">Knowledge Base</TabsTrigger>
                         <TabsTrigger value="intent-checker">Intent Checker</TabsTrigger>
+                        <TabsTrigger value="enhanced-responses">Enhanced Responses</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details">
                         <Card>
@@ -148,6 +155,11 @@ export default async function ViewAgentPage({ params, searchParams }: PageProps)
                     <TabsContent value="intent-checker">
                         <Suspense fallback={<div>Loading intent checker...</div>}>
                             <IntentCheckerTab agentId={agentIdNumber} />
+                        </Suspense>
+                    </TabsContent>
+                    <TabsContent value="enhanced-responses">
+                        <Suspense fallback={<div>Loading enhanced responses...</div>}>
+                            <EnhancedResponsesTab agentId={agentIdNumber} agent={agent} />
                         </Suspense>
                     </TabsContent>
                 </Tabs>

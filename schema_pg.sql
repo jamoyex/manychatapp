@@ -5,7 +5,8 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255), -- Now nullable
+    core_credits INTEGER DEFAULT 0, -- New column for credits
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -39,6 +40,12 @@ CREATE TABLE agents (
     last_trained TIMESTAMP,
     is_training BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
+    -- Enhanced Responses fields
+    enhanced_responses_enabled BOOLEAN DEFAULT false,
+    template_installed BOOLEAN DEFAULT false,
+    loader_enabled BOOLEAN DEFAULT false,
+    gallery_enabled BOOLEAN DEFAULT false,
+    quick_replies_enabled BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -435,7 +435,8 @@ module.exports = (pool) => {
         'industry', 'instagram_url', 'leader_full_name', 'linkedin_url',
         'product_or_service_you_sell', 'purchase_book_appointments_here',
         'support_email_address', 'tiktok_url', 'twitter_url', 'website_url',
-        'youtube_url', 'is_active'
+        'youtube_url', 'is_active', 'enhanced_responses_enabled', 'template_installed',
+        'loader_enabled', 'gallery_enabled', 'quick_replies_enabled'
       ];
 
       const fieldsToUpdate = [];
@@ -570,6 +571,153 @@ module.exports = (pool) => {
     } catch (error) {
       console.error('Error deleting intent:', error);
       res.status(500).json({ error: 'Failed to delete intent mapping' });
+    }
+  });
+
+  // --- ENHANCED RESPONSES ROUTES ---
+
+  // POST /api/agents/:id/check-template - Check if ManyChat template is installed
+  router.post('/:id/check-template', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { id } = req.params;
+      
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [id, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Get the app token from app_installs
+      const installResult = await pool.query(
+        'SELECT app_token FROM app_installs WHERE agent_id = $1 AND is_active = true',
+        [id]
+      );
+
+      if (installResult.rows.length === 0) {
+        return res.status(404).json({ error: 'ManyChat not connected for this agent' });
+      }
+
+      const appToken = installResult.rows[0].app_token;
+
+      // Check if the required flow exists in ManyChat
+      const response = await fetch('https://api.manychat.com/fb/page/getFlows', {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${appToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch flows from ManyChat');
+      }
+
+      const data = await response.json();
+      const flows = data.data || [];
+      
+      // Look for the BBCORE TYPER flow
+      const requiredFlow = flows.find(flow => flow.name === 'BBCORE TYPER');
+      const installed = !!requiredFlow;
+
+      // Update the template_installed status in the database
+      await pool.query(
+        'UPDATE agents SET template_installed = $1 WHERE id = $2',
+        [installed, id]
+      );
+
+      res.json({ installed });
+
+    } catch (error) {
+      console.error('Check template installation error:', error);
+      res.status(500).json({ error: 'Failed to check template installation' });
+    }
+  });
+
+  // PUT /api/agents/:id/enhanced-responses - Update enhanced responses settings
+  router.put('/:id/enhanced-responses', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [id, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Define allowed fields for enhanced responses
+      const allowedFields = [
+        'enhanced_responses_enabled',
+        'template_installed',
+        'loader_enabled',
+        'gallery_enabled',
+        'quick_replies_enabled'
+      ];
+
+      const fieldsToUpdate = [];
+      const valuesToUpdate = [];
+      let valueIndex = 1;
+
+      allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          fieldsToUpdate.push(`"${field}" = $${valueIndex++}`);
+          valuesToUpdate.push(updateData[field]);
+        }
+      });
+
+      if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update provided.' });
+      }
+
+      const setClause = fieldsToUpdate.join(', ');
+      
+      const updateQuery = `
+        UPDATE agents 
+        SET ${setClause}
+        WHERE id = $${valueIndex++} AND owner_id = $${valueIndex++}
+      `;
+      
+      const queryValues = [...valuesToUpdate, id, req.session.userId];
+      await pool.query(updateQuery, queryValues);
+
+      // Fetch updated agent
+      const updatedAgentResult = await pool.query(`
+        SELECT 
+            a.*, 
+            CASE WHEN ai.id IS NOT NULL THEN true ELSE false END as is_installed
+        FROM 
+            agents a
+        LEFT JOIN 
+            app_installs ai ON a.id = ai.agent_id
+        WHERE 
+            a.id = $1 AND a.owner_id = $2
+      `, [id, req.session.userId]);
+
+      if (updatedAgentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found after update.' });
+      }
+
+      res.json({ agent: updatedAgentResult.rows[0] });
+
+    } catch (error) {
+      console.error('Update enhanced responses error:', error);
+      res.status(500).json({ error: 'Failed to update enhanced responses settings' });
     }
   });
 

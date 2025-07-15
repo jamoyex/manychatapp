@@ -33,6 +33,44 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   return data
 }
 
+export async function loginUserByEmail(email: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ email })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Login failed')
+  }
+
+  return data
+}
+
+export async function loginUserByUUID(uuid: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login-uuid`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ uuid })
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Login failed')
+  }
+
+  return data
+}
+
 export async function registerUser(name: string, email: string, password: string): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -183,6 +221,11 @@ export function validateEmail(email: string): boolean {
   return emailRegex.test(email)
 }
 
+export function validateUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  return uuidRegex.test(uuid)
+}
+
 export function validatePassword(password: string): { isValid: boolean; error?: string } {
   if (password.length < 6) {
     return { isValid: false, error: 'Password must be at least 6 characters' }
@@ -245,5 +288,54 @@ export function validateLoginForm(formData: Record<string, string>): { isValid: 
   return {
     isValid: errors.length === 0,
     errors
+  }
+}
+
+// localStorage utilities for auth redirect
+export const authStorage = {
+  // Save email to localStorage with expiration
+  saveEmail: (email: string): void => {
+    try {
+      localStorage.setItem('bbcore_auth_email', email)
+      localStorage.setItem('bbcore_auth_email_expires', (Date.now() + 24 * 60 * 60 * 1000).toString())
+    } catch (e) {
+      console.warn('Failed to save email to localStorage:', e)
+    }
+  },
+
+  // Get email from localStorage if not expired
+  getEmail: (): string | null => {
+    try {
+      const email = localStorage.getItem('bbcore_auth_email')
+      const expires = localStorage.getItem('bbcore_auth_email_expires')
+      
+      if (!email || !expires) return null
+      
+      if (Date.now() > parseInt(expires)) {
+        // Expired, clean up
+        authStorage.clearEmail()
+        return null
+      }
+      
+      return email
+    } catch (e) {
+      console.warn('Failed to get email from localStorage:', e)
+      return null
+    }
+  },
+
+  // Clear email from localStorage
+  clearEmail: (): void => {
+    try {
+      localStorage.removeItem('bbcore_auth_email')
+      localStorage.removeItem('bbcore_auth_email_expires')
+    } catch (e) {
+      console.warn('Failed to clear email from localStorage:', e)
+    }
+  },
+
+  // Check if email exists and is valid
+  hasValidEmail: (): boolean => {
+    return authStorage.getEmail() !== null
   }
 } 

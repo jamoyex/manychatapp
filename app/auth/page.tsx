@@ -53,27 +53,33 @@ function AuthRedirectContent() {
           url.search = ''
           window.history.replaceState({}, document.title, url.toString())
           
-          // Save email to localStorage for session management
-          authStorage.saveEmail(emailParam)
-        }
+                  // Save email to localStorage for session management
+        authStorage.saveEmail(emailParam)
+      }
 
-        // Check referrer domain
-        const referrer = document.referrer
-        const currentDomain = window.location.hostname
-        
+      // Check referrer domain
+      const referrer = document.referrer
+      const currentDomain = window.location.hostname
+      
+      // Debug: Log referrer information for email auth
+      console.log('Email Auth Debug:', {
+        referrer,
+        currentDomain,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      })
+      
+      // Validate referrer using the config function
+      const isAllowedReferrer = validateReferrer(referrer, currentDomain)
 
-        
-        // Validate referrer using the config function
-        const isAllowedReferrer = validateReferrer(referrer, currentDomain)
+      if (!isAllowedReferrer) {
+        setStatus('invalid-domain')
+        setMessage(`Access denied. This authentication link can only be accessed from authorized domains. Referrer: ${referrer || 'none'}, Domain: ${currentDomain}`)
+        return
+      }
 
-        if (!isAllowedReferrer) {
-          setStatus('invalid-domain')
-          setMessage(`Access denied. This authentication link can only be accessed from authorized domains. Referrer: ${referrer || 'none'}, Domain: ${currentDomain}`)
-          return
-        }
-
-        // Attempt to log in with email
-        await loginUserByEmail(emailParam)
+      // Attempt to log in with email
+      await loginUserByEmail(emailParam)
       }
 
       // Handle UUID authentication
@@ -98,7 +104,13 @@ function AuthRedirectContent() {
         const referrer = document.referrer
         const currentDomain = window.location.hostname
         
-
+        // Debug: Log referrer information for UUID auth
+        console.log('UUID Auth Debug:', {
+          referrer,
+          currentDomain,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        })
         
         // Validate referrer using the config function
         const isAllowedReferrer = validateReferrer(referrer, currentDomain)

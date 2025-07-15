@@ -30,23 +30,49 @@ export function isAllowedDomain(domain: string): boolean {
 
 // Helper function to validate referrer
 export function validateReferrer(referrer: string, currentDomain: string): boolean {
+  // Debug logging
+  console.log('validateReferrer called with:', { referrer, currentDomain })
+  
   // Allow localhost for development (even with direct access)
   if (currentDomain === 'localhost' || currentDomain === '127.0.0.1') {
+    console.log('Allowing localhost access')
     return true
   }
   
   // If no referrer and direct access is not allowed, block access
   if (!referrer && !AUTH_CONFIG.SECURITY.ALLOW_DIRECT_ACCESS) {
+    console.log('Blocking: No referrer and direct access not allowed')
     return false
   }
   
   // If no referrer but direct access is allowed (for development)
   if (!referrer && AUTH_CONFIG.SECURITY.ALLOW_DIRECT_ACCESS) {
+    console.log('Allowing: No referrer but direct access allowed')
     return true
   }
   
-  // Check if referrer is from allowed domains
-  return AUTH_CONFIG.ALLOWED_DOMAINS.some(domain => 
-    referrer.includes(domain) || currentDomain.includes(domain)
+  // Extract domain from referrer URL
+  let referrerDomain: string
+  try {
+    const referrerUrl = new URL(referrer)
+    referrerDomain = referrerUrl.hostname
+    console.log('Extracted referrer domain:', referrerDomain)
+  } catch (error) {
+    console.log('Blocking: Invalid referrer URL')
+    // If referrer is not a valid URL, block access
+    return false
+  }
+  
+  // Check if referrer domain is in the allowed domains list
+  const isAllowed = AUTH_CONFIG.ALLOWED_DOMAINS.some(domain => 
+    referrerDomain === domain || referrerDomain.endsWith(`.${domain}`)
   )
+  
+  console.log('Domain check result:', {
+    referrerDomain,
+    allowedDomains: AUTH_CONFIG.ALLOWED_DOMAINS,
+    isAllowed
+  })
+  
+  return isAllowed
 } 

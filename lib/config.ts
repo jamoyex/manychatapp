@@ -3,13 +3,10 @@
 export const AUTH_CONFIG = {
   // Allowed domains that can use the email-based authentication redirect
   ALLOWED_DOMAINS: [
-    'localhost',
-    '127.0.0.1',
-    'bbcore.com',
-    'bbcore.ai',
-    'manychat.com',
-    'manychat.io',
-    'yourdomain.com', // Replace with your actual domains
+    'localhost', // For development
+    '127.0.0.1', // For development
+    'portal.botbuilders.com',
+    'app.automator.ai',
   ],
   
   // Additional security settings

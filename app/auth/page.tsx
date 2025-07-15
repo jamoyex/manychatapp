@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { loginUserByEmail, loginUserByUUID, validateEmail, validateUUID, authStorage } from '@/lib/auth'
 import { AuthLayout } from '@/components/auth/authLayout'
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { validateReferrer } from '@/lib/config'
 
-export default function AuthRedirectPage() {
+function AuthRedirectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'invalid-domain'>('loading')
@@ -244,5 +244,38 @@ export default function AuthRedirectPage() {
         </CardContent>
       </Card>
     </AuthLayout>
+  )
+}
+
+export default function AuthRedirectPage() {
+  return (
+    <Suspense fallback={
+      <AuthLayout
+        title="Authentication"
+        description="Loading..."
+      >
+        <Card className="shadow-xl">
+          <CardHeader className="space-y-1">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <span className="text-white font-bold text-xl">BB</span>
+              </div>
+              <CardTitle className="text-2xl font-bold">Authentication</CardTitle>
+              <CardDescription>Loading...</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-xs text-gray-500">
+                Please wait while we load the authentication page...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </AuthLayout>
+    }>
+      <AuthRedirectContent />
+    </Suspense>
   )
 } 

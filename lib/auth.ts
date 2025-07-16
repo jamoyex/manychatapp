@@ -30,6 +30,9 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     throw new Error(data.error || 'Login failed')
   }
 
+  // Save session to localStorage
+  sessionStorage.saveSession(data.user)
+
   return data
 }
 
@@ -48,6 +51,9 @@ export async function loginUserByUUID(uuid: string): Promise<AuthResponse> {
   if (!response.ok) {
     throw new Error(data.error || 'Login failed')
   }
+
+  // Save session to localStorage
+  sessionStorage.saveSession(data.user)
 
   return data
 }
@@ -82,6 +88,9 @@ export async function logoutUser(): Promise<{ message: string }> {
   if (!response.ok) {
     throw new Error(data.error || 'Logout failed')
   }
+
+  // Clear session from localStorage
+  sessionStorage.clearSession()
 
   return data
 }
@@ -318,5 +327,56 @@ export const authStorage = {
   // Check if email exists and is valid
   hasValidEmail: (): boolean => {
     return authStorage.getEmail() !== null
+  }
+}
+
+// Session storage utilities for authentication persistence
+export const sessionStorage = {
+  // Save user session to localStorage
+  saveSession: (user: any): void => {
+    try {
+      localStorage.setItem('bbcore_session', JSON.stringify({
+        user,
+        timestamp: Date.now(),
+        expires: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      }))
+    } catch (e) {
+      console.warn('Failed to save session to localStorage:', e)
+    }
+  },
+
+  // Get user session from localStorage if not expired
+  getSession: (): any => {
+    try {
+      const sessionData = localStorage.getItem('bbcore_session')
+      if (!sessionData) return null
+      
+      const session = JSON.parse(sessionData)
+      
+      if (Date.now() > session.expires) {
+        // Expired, clean up
+        sessionStorage.clearSession()
+        return null
+      }
+      
+      return session.user
+    } catch (e) {
+      console.warn('Failed to get session from localStorage:', e)
+      return null
+    }
+  },
+
+  // Clear session from localStorage
+  clearSession: (): void => {
+    try {
+      localStorage.removeItem('bbcore_session')
+    } catch (e) {
+      console.warn('Failed to clear session from localStorage:', e)
+    }
+  },
+
+  // Check if user is authenticated
+  isAuthenticated: (): boolean => {
+    return sessionStorage.getSession() !== null
   }
 } 

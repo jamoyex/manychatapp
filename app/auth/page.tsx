@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { loginUserByUUID, validateUUID } from '@/lib/auth'
+import { loginUserByUUID, validateUUID, sessionStorage } from '@/lib/auth'
 import { AuthLayout } from '@/components/auth/authLayout'
 import { Button } from '@/components/ui/button'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
@@ -65,7 +65,10 @@ function AuthRedirectContent() {
       }
 
       // Attempt to log in with UUID
-      await loginUserByUUID(uuidParam)
+      const authResponse = await loginUserByUUID(uuidParam)
+      
+      // Save session to localStorage (this is also done in loginUserByUUID, but we'll do it here too for clarity)
+      sessionStorage.saveSession(authResponse.user)
       
       setStatus('success')
       setMessage('Authentication successful! Redirecting to dashboard...')

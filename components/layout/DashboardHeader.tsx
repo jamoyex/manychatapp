@@ -55,8 +55,8 @@ export function DashboardHeader({
           {/* User "Team" Dropdown - simplified to just show user name */}
           {user && (
             <div className="flex items-center space-x-4">
-              <div className="flex items-center px-3 py-1.5 text-sm text-gray-700 bg-gray-50 rounded-md">
-                <span>{user.name}</span>
+            <div className="flex items-center px-3 py-1.5 text-sm text-gray-700 bg-gray-50 rounded-md">
+              <span>{user.name}</span>
               </div>
               <div className="flex items-center px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-md">
                 <span className="font-medium">{user.core_credits} Core Credits</span>

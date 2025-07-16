@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Copy, Brain } from 'lucide-react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Copy, Brain, Plus, Save } from 'lucide-react'
 import { KnowledgeBaseTab, KnowledgeBaseTabRef } from './KnowledgeBaseTab'
 import { IntentCheckerTab } from './IntentCheckerTab'
 import { EnhancedResponsesTab } from './EnhancedResponsesTab'
@@ -48,8 +49,10 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
   const [formData, setFormData] = useState(agent)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('core')
-  const [activeAdvancedTab, setActiveAdvancedTab] = useState('knowledge')
+  const [activeAdvancedTab, setActiveAdvancedTab] = useState('intents')
+  const [activeKnowledgeTab, setActiveKnowledgeTab] = useState('files')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showFloatingSave, setShowFloatingSave] = useState(false)
   const knowledgeBaseRef = useRef<KnowledgeBaseTabRef>(null)
   
   // Knowledge Base button states
@@ -62,6 +65,19 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
     setFormData(agent)
     setHasUnsavedChanges(false)
   }, [agent])
+
+  // Check if regular save buttons should be visible
+  const shouldShowRegularSaveButtons = () => {
+    if (!hasUnsavedChanges) return false
+    if (activeTab === 'advanced' || activeTab === 'knowledge') return false
+    return true
+  }
+
+  // Update floating save button visibility
+  useEffect(() => {
+    const shouldShowFloating = hasUnsavedChanges && !shouldShowRegularSaveButtons()
+    setShowFloatingSave(shouldShowFloating)
+  }, [hasUnsavedChanges, activeTab])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -157,7 +173,7 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
                 </Button>
               )}
               
-              {/* Save Changes Button */}
+              {/* Save Changes Button - Top */}
               {hasUnsavedChanges && (
                 <Button onClick={() => handleSubmit({ preventDefault: () => {} } as FormEvent)} disabled={isLoading}>
                   {isLoading ? 'Saving...' : 'Save Changes'}
@@ -227,10 +243,8 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
                 <div className="min-w-max px-2">
                   <TabsList className="h-12 inline-flex items-center gap-4">
                     <TabsTrigger value="core">Core</TabsTrigger>
-                    <TabsTrigger value="company">Company</TabsTrigger>
-                    <TabsTrigger value="leader_product">Leader & Product</TabsTrigger>
-                    <TabsTrigger value="links">Links</TabsTrigger>
                     <TabsTrigger value="integrations">Integrations</TabsTrigger>
+                    <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                     <TabsTrigger value="advanced">Advanced</TabsTrigger>
                   </TabsList>
                 </div>
@@ -239,177 +253,200 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
             
                          <TabsContent value="core">
                <TabContentWrapper>
-                 <div className="space-y-2">
-                   <Label htmlFor="agent_id">Agent ID</Label>
-                   <div className="flex items-center space-x-2">
-                     <Input 
-                       id="agent_id" 
-                       name="agent_id" 
-                       value={formData.agent_id || ''} 
-                       readOnly 
-                       disabled 
-                       className="font-mono bg-gray-100 flex-1" 
-                     />
-                     <Button
-                       type="button"
-                       variant="outline"
-                       size="sm"
-                       onClick={copyAgentId}
-                       className="px-3"
-                     >
-                       <Copy className="h-4 w-4" />
-                     </Button>
-                   </div>
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="bot_name">Bot Name</Label>
-                   <Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="bot_primary_goal">Primary Goal</Label>
-                   <Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} rows={3} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="bot_tone_for_replies">Tone for Replies</Label>
-                   <Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} />
-                 </div>
+                 <Accordion type="single" collapsible defaultValue="agent-details" className="w-full">
+                   {/* Agent Details Accordion */}
+                   <AccordionItem value="agent-details">
+                     <AccordionTrigger>Agent Details</AccordionTrigger>
+                     <AccordionContent>
+                       <div className="space-y-6 pt-4 px-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="agent_id">Agent ID</Label>
+                           <div className="flex items-center space-x-2">
+                             <Input 
+                               id="agent_id" 
+                               name="agent_id" 
+                               value={formData.agent_id || ''} 
+                               readOnly 
+                               disabled 
+                               className="font-mono bg-gray-100 flex-1" 
+                             />
+                             <Button
+                               type="button"
+                               variant="outline"
+                               size="sm"
+                               onClick={copyAgentId}
+                               className="px-3"
+                             >
+                               <Copy className="h-4 w-4" />
+                             </Button>
+                           </div>
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="bot_name">Bot Name</Label>
+                           <Input id="bot_name" name="bot_name" value={formData.bot_name || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="bot_primary_goal">Primary Goal</Label>
+                           <Textarea id="bot_primary_goal" name="bot_primary_goal" value={formData.bot_primary_goal || ''} onChange={handleChange} rows={3} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="bot_tone_for_replies">Tone for Replies</Label>
+                           <Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} />
+                         </div>
+                       </div>
+                     </AccordionContent>
+                   </AccordionItem>
+
+                   {/* Company Information Accordion */}
+                   <AccordionItem value="company-info">
+                     <AccordionTrigger>Company Information</AccordionTrigger>
+                     <AccordionContent>
+                       <div className="space-y-6 pt-4 px-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="company_name">Company Name</Label>
+                           <Input id="company_name" name="company_name" value={formData.company_name || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="industry">Industry</Label>
+                           <Input id="industry" name="industry" value={formData.industry || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="details_about_company">About Company</Label>
+                           <Textarea id="details_about_company" name="details_about_company" value={formData.details_about_company || ''} onChange={handleChange} rows={4} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="company_location">Company Location</Label>
+                           <Input id="company_location" name="company_location" value={formData.company_location || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="company_phone_number">Company Phone</Label>
+                           <Input id="company_phone_number" name="company_phone_number" value={formData.company_phone_number || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="support_email_address">Support Email</Label>
+                           <Input id="support_email_address" name="support_email_address" value={formData.support_email_address || ''} onChange={handleChange} />
+                         </div>
+                       </div>
+                     </AccordionContent>
+                   </AccordionItem>
+
+                   {/* Leader & Product Information Accordion */}
+                   <AccordionItem value="leader-product">
+                     <AccordionTrigger>Leader & Product Information</AccordionTrigger>
+                     <AccordionContent>
+                       <div className="space-y-6 pt-4 px-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="leader_full_name">Leader's Full Name</Label>
+                           <Input id="leader_full_name" name="leader_full_name" value={formData.leader_full_name || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="details_about_leader">About Leader</Label>
+                           <Textarea id="details_about_leader" name="details_about_leader" value={formData.details_about_leader || ''} onChange={handleChange} rows={3} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="product_or_service_you_sell">Product/Service</Label>
+                           <Input id="product_or_service_you_sell" name="product_or_service_you_sell" value={formData.product_or_service_you_sell || ''} onChange={handleChange} />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="details_about_product_or_service">About Product/Service</Label>
+                           <Textarea id="details_about_product_or_service" name="details_about_product_or_service" value={formData.details_about_product_or_service || ''} onChange={handleChange} rows={4} />
+                         </div>
+                       </div>
+                     </AccordionContent>
+                   </AccordionItem>
+
+                   {/* Social Media & Links Accordion */}
+                   <AccordionItem value="social-links">
+                     <AccordionTrigger>Social Media & Links</AccordionTrigger>
+                     <AccordionContent>
+                       <div className="space-y-6 pt-4 px-4">
+                         <div className="space-y-2">
+                           <Label htmlFor="website_url">Website URL</Label>
+                           <Input id="website_url" name="website_url" value={formData.website_url || ''} onChange={handleChange} placeholder="https://example.com" />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+                           <Input id="linkedin_url" name="linkedin_url" value={formData.linkedin_url || ''} onChange={handleChange} placeholder="https://linkedin.com/company/..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="twitter_url">Twitter URL</Label>
+                           <Input id="twitter_url" name="twitter_url" value={formData.twitter_url || ''} onChange={handleChange} placeholder="https://twitter.com/..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="facebook_page_url">Facebook Page URL</Label>
+                           <Input id="facebook_page_url" name="facebook_page_url" value={formData.facebook_page_url || ''} onChange={handleChange} placeholder="https://facebook.com/..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="instagram_url">Instagram URL</Label>
+                           <Input id="instagram_url" name="instagram_url" value={formData.instagram_url || ''} onChange={handleChange} placeholder="https://instagram.com/..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="tiktok_url">TikTok URL</Label>
+                           <Input id="tiktok_url" name="tiktok_url" value={formData.tiktok_url || ''} onChange={handleChange} placeholder="https://tiktok.com/@..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="youtube_url">YouTube URL</Label>
+                           <Input id="youtube_url" name="youtube_url" value={formData.youtube_url || ''} onChange={handleChange} placeholder="https://youtube.com/..." />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="purchase_book_appointments_here">Booking/Purchase URL</Label>
+                           <Input id="purchase_book_appointments_here" name="purchase_book_appointments_here" value={formData.purchase_book_appointments_here || ''} onChange={handleChange} placeholder="https://booking.example.com" />
+                         </div>
+                       </div>
+                     </AccordionContent>
+                   </AccordionItem>
+                 </Accordion>
                </TabContentWrapper>
              </TabsContent>
 
-                         <TabsContent value="company">
-               <TabContentWrapper>
-                 <div className="space-y-2">
-                   <Label htmlFor="company_name">Company Name</Label>
-                   <Input id="company_name" name="company_name" value={formData.company_name || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="industry">Industry</Label>
-                   <Input id="industry" name="industry" value={formData.industry || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="details_about_company">About Company</Label>
-                   <Textarea id="details_about_company" name="details_about_company" value={formData.details_about_company || ''} onChange={handleChange} rows={4} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="company_location">Company Location</Label>
-                   <Input id="company_location" name="company_location" value={formData.company_location || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="company_phone_number">Company Phone</Label>
-                   <Input id="company_phone_number" name="company_phone_number" value={formData.company_phone_number || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="support_email_address">Support Email</Label>
-                   <Input id="support_email_address" name="support_email_address" value={formData.support_email_address || ''} onChange={handleChange} />
-                 </div>
-               </TabContentWrapper>
-             </TabsContent>
+                                     <TabsContent value="integrations">
+              <TabContentWrapper>
+                <IntegrationsTab agentId={agent.id} />
+              </TabContentWrapper>
+            </TabsContent>
 
-                         <TabsContent value="leader_product">
-               <TabContentWrapper>
-                 <div className="space-y-2">
-                   <Label htmlFor="leader_full_name">Leader's Full Name</Label>
-                   <Input id="leader_full_name" name="leader_full_name" value={formData.leader_full_name || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="details_about_leader">About Leader</Label>
-                   <Textarea id="details_about_leader" name="details_about_leader" value={formData.details_about_leader || ''} onChange={handleChange} rows={3} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="product_or_service_you_sell">Product/Service</Label>
-                   <Input id="product_or_service_you_sell" name="product_or_service_you_sell" value={formData.product_or_service_you_sell || ''} onChange={handleChange} />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="details_about_product_or_service">About Product/Service</Label>
-                   <Textarea id="details_about_product_or_service" name="details_about_product_or_service" value={formData.details_about_product_or_service || ''} onChange={handleChange} rows={4} />
-                 </div>
-               </TabContentWrapper>
-             </TabsContent>
-
-                         <TabsContent value="links">
-               <TabContentWrapper>
-                 <div className="space-y-2">
-                   <Label htmlFor="website_url">Website URL</Label>
-                   <Input id="website_url" name="website_url" value={formData.website_url || ''} onChange={handleChange} placeholder="https://example.com" />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-                   <Input id="linkedin_url" name="linkedin_url" value={formData.linkedin_url || ''} onChange={handleChange} placeholder="https://linkedin.com/company/..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="twitter_url">Twitter URL</Label>
-                   <Input id="twitter_url" name="twitter_url" value={formData.twitter_url || ''} onChange={handleChange} placeholder="https://twitter.com/..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="facebook_page_url">Facebook Page URL</Label>
-                   <Input id="facebook_page_url" name="facebook_page_url" value={formData.facebook_page_url || ''} onChange={handleChange} placeholder="https://facebook.com/..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="instagram_url">Instagram URL</Label>
-                   <Input id="instagram_url" name="instagram_url" value={formData.instagram_url || ''} onChange={handleChange} placeholder="https://instagram.com/..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="tiktok_url">TikTok URL</Label>
-                   <Input id="tiktok_url" name="tiktok_url" value={formData.tiktok_url || ''} onChange={handleChange} placeholder="https://tiktok.com/@..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="youtube_url">YouTube URL</Label>
-                   <Input id="youtube_url" name="youtube_url" value={formData.youtube_url || ''} onChange={handleChange} placeholder="https://youtube.com/..." />
-                 </div>
-                 
-                 <div className="space-y-2">
-                   <Label htmlFor="purchase_book_appointments_here">Booking/Purchase URL</Label>
-                   <Input id="purchase_book_appointments_here" name="purchase_book_appointments_here" value={formData.purchase_book_appointments_here || ''} onChange={handleChange} placeholder="https://booking.example.com" />
-                 </div>
-               </TabContentWrapper>
-             </TabsContent>
-
-                         <TabsContent value="integrations">
-               <TabContentWrapper>
-                 <IntegrationsTab agentId={agent.id} />
-               </TabContentWrapper>
-             </TabsContent>
+            <TabsContent value="knowledge">
+              <TabContentWrapper>
+                <KnowledgeBaseTab 
+                  ref={knowledgeBaseRef}
+                  agentId={agent.id} 
+                  agent={{
+                    last_trained: formData.last_trained,
+                    is_training: formData.is_training
+                  }}
+                  onButtonStatesChange={setKnowledgeBaseButtonStates}
+                  onAgentStateChange={handleAgentStateChange}
+                  onTabChange={setActiveKnowledgeTab}
+                />
+              </TabContentWrapper>
+            </TabsContent>
 
             <TabsContent value="advanced">
               <Tabs value={activeAdvancedTab} onValueChange={setActiveAdvancedTab} className="w-full">
                 <div className="mb-4 border-b">
                   <TabsList>
-                    <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                     <TabsTrigger value="intents">Intent Checker</TabsTrigger>
                     <TabsTrigger value="enhanced">Enhanced Responses</TabsTrigger>
                   </TabsList>
                 </div>
-                                 <TabsContent value="knowledge">
-                   <TabContentWrapper>
-                     <KnowledgeBaseTab 
-                       ref={knowledgeBaseRef}
-                       agentId={agent.id} 
-                       agent={{
-                         last_trained: agent.last_trained,
-                         is_training: agent.is_training
-                       }}
-                       onButtonStatesChange={setKnowledgeBaseButtonStates}
-                       onAgentStateChange={handleAgentStateChange}
-                     />
-                   </TabContentWrapper>
-                 </TabsContent>
                 <TabsContent value="intents">
                   <TabContentWrapper>
                     <IntentCheckerTab agentId={agent.id} />
@@ -429,40 +466,94 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
           </Tabs>
 
           <div className="flex justify-end p-6 border-t">
-            {activeTab !== 'advanced' && (
-              <Button type="submit" form="agent-form" disabled={isLoading}>
+            {activeTab !== 'advanced' && activeTab !== 'knowledge' && (
+              <Button type="submit" form="agent-form" disabled={isLoading || !hasUnsavedChanges}>
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>
             )}
             
-            {/* Knowledge Base buttons - show when in advanced > knowledge tab */}
-            {activeTab === 'advanced' && activeAdvancedTab === 'knowledge' && (
+            {/* Knowledge Base buttons - show when in knowledge tab */}
+            {activeTab === 'knowledge' && (
               <div className="flex space-x-3">
-                <Button 
-                  type="button"
-                  onClick={() => knowledgeBaseRef.current?.uploadFiles()}
-                  disabled={!knowledgeBaseButtonStates.upload.canUpload}
-                >
-                  {knowledgeBaseButtonStates.upload.label}
-                </Button>
+                {/* Context-aware buttons based on active knowledge tab */}
+                {activeKnowledgeTab === 'files' && (
+                  <Button 
+                    type="button"
+                    onClick={() => knowledgeBaseRef.current?.uploadFiles()}
+                    disabled={!knowledgeBaseButtonStates.upload.canUpload}
+                  >
+                    {knowledgeBaseButtonStates.upload.label}
+                  </Button>
+                )}
                 
-                <Button 
-                  type="button"
-                  variant="outline"
-                  onClick={() => knowledgeBaseRef.current?.trainBot()}
-                  disabled={!knowledgeBaseButtonStates.train.canTrain}
-                  className="flex items-center space-x-2"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span>
-                    {knowledgeBaseButtonStates.train.label}
-                  </span>
-                </Button>
+                {activeKnowledgeTab === 'links' && (
+                  <Button 
+                    type="button"
+                    onClick={() => knowledgeBaseRef.current?.addLink()}
+                    className="flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Link</span>
+                  </Button>
+                )}
+                
+                {activeKnowledgeTab === 'texts' && (
+                  <Button 
+                    type="button"
+                    onClick={() => knowledgeBaseRef.current?.addText()}
+                    className="flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Text</span>
+                  </Button>
+                )}
+                
+                {activeKnowledgeTab === 'qa' && (
+                  <Button 
+                    type="button"
+                    onClick={() => knowledgeBaseRef.current?.addQA()}
+                    className="flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Q&A</span>
+                  </Button>
+                )}
               </div>
             )}
           </div>
         </form>
       </Card>
+
+      {/* Floating Save Changes Button */}
+      {showFloatingSave && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+          <Button
+            onClick={() => handleSubmit({ preventDefault: () => {} } as FormEvent)}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2 px-6 py-3 rounded-full"
+            style={{
+              animation: 'fadeInUp 0.3s ease-out'
+            }}
+          >
+            <Save className="w-4 h-4" />
+            <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
+          </Button>
+        </div>
+      )}
+
+      {/* CSS for fade-in animation */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%, 20px);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
+        }
+      `}</style>
     </div>
   )
 } 

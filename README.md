@@ -6,28 +6,36 @@ A modern, full-stack AI Chatbot SaaS platform with user authentication, comprehe
 
 - 🔐 **Complete Authentication**: Register, login, logout with session management
 - 🤖 **AI Agent Management**: Create, edit, view, and manage chatbot agents with detailed configurations
+- 📚 **Enhanced Knowledge Base**: Support for files, links, text content, and Q&A pairs with smart training indicators
+- 🗑️ **Soft Deletion**: Safe deletion of knowledge base items with retraining indicators
+- 💾 **Floating Save Button**: Persistent save functionality with smart visibility logic
 - 📱 **Responsive Design**: Mobile-first design with modern UI components
 - ⚡ **Hybrid Architecture**: Next.js frontend with Express.js API backend
 - 🎨 **Modern UI**: Beautiful interface with Shadcn UI and Radix components
 - 🔒 **Secure**: Password hashing, session management, and form validation
 - 📊 **Dashboard**: Comprehensive dashboard with agent management and statistics
 - 🔗 **ManyChat Ready**: Database schema designed for ManyChat integration
+- 🎯 **Intent Management**: Advanced intent checking and flow mapping
+- ⚙️ **Enhanced Responses**: Configurable response templates and quick replies
 
 ## 🛠 Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **UI Library**: React 18
+- **UI Library**: React 19
 - **Styling**: Tailwind CSS
 - **Components**: Shadcn UI + Radix UI
 - **Language**: TypeScript
 - **Icons**: Lucide React
+- **State Management**: Zustand for local state
+- **Data Fetching**: TanStack Query
 
 ### Backend
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL
 - **Authentication**: bcryptjs + express-session
 - **Security**: CORS, password hashing, SSL support
+- **File Storage**: Cloudflare R2 for knowledge base files
 
 ## 📦 Installation
 
@@ -115,9 +123,14 @@ bbcore-saas/
 │   │   ├── authForm.tsx
 │   │   └── authLayout.tsx
 │   ├── dashboard/       # Dashboard components
+│   │   ├── AgentConfigurationInterface.tsx
 │   │   ├── AgentFormModal.tsx
 │   │   ├── CreateAgentModal.tsx
 │   │   ├── EditAgentModal.tsx
+│   │   ├── KnowledgeBaseTab.tsx
+│   │   ├── IntentCheckerTab.tsx
+│   │   ├── EnhancedResponsesTab.tsx
+│   │   ├── IntegrationsTab.tsx
 │   │   └── ViewAgentModal.tsx
 │   └── ui/              # Shadcn UI components
 │       ├── button.tsx
@@ -127,7 +140,12 @@ bbcore-saas/
 │       ├── label.tsx
 │       ├── progress.tsx
 │       ├── tabs.tsx
-│       └── textarea.tsx
+│       ├── textarea.tsx
+│       ├── accordion.tsx
+│       ├── badge.tsx
+│       ├── dropdown-menu.tsx
+│       ├── select.tsx
+│       └── switch.tsx
 ├── lib/                 # Utility functions
 │   ├── auth.ts
 │   └── utils.ts
@@ -135,7 +153,7 @@ bbcore-saas/
 │   ├── agents.js        # Agent management API
 │   └── auth.js          # Authentication API
 ├── app.js               # Express server + Next.js integration
-├── schema_pg.sql        # Database schema
+├── schema_pg.sql        # Complete database schema
 ├── components.json      # Shadcn UI configuration
 ├── tailwind.config.js   # Tailwind configuration
 └── package.json
@@ -157,10 +175,38 @@ bbcore-saas/
 - `GET /api/agents/:id` - Get specific agent
 
 ### Knowledge Base & Training
-- `GET /api/agents/:id/knowledge-base` - Get all knowledge base files for an agent.
-- `POST /api/agents/:id/knowledge-base` - Upload new files (`.pdf`, `.docx`) to Cloudflare R2.
-- `DELETE /api/agents/:id/knowledge-base/:fileId` - Delete a file from R2 and the database.
-- `POST /api/agents/:id/train` - Trigger the training webhook. Sets `is_training` to `true` on the agent.
+- `GET /api/agents/:id/knowledge-base` - Get all knowledge base items for an agent
+- `POST /api/agents/:id/knowledge-base` - Upload files or add links/text/Q&A
+- `PUT /api/agents/:id/knowledge-base/:itemId` - Update knowledge base item
+- `DELETE /api/agents/:id/knowledge-base/:itemId` - Soft delete knowledge base item
+- `POST /api/agents/:id/train` - Trigger training webhook
+
+### Intent Management
+- `GET /api/agents/:id/intents` - Get intent mappings
+- `POST /api/agents/:id/intents` - Create intent mapping
+- `PUT /api/agents/:id/intents/:intentId` - Update intent mapping
+- `DELETE /api/agents/:id/intents/:intentId` - Delete intent mapping
+
+## 🧠 Knowledge Base Features
+
+### Multi-Format Support
+The knowledge base now supports multiple data types:
+- **Files**: PDF, DOCX, and other document formats
+- **Links**: Web URLs with automatic content fetching
+- **Text**: Direct text content input
+- **Q&A**: Question and answer pairs
+
+### Smart Training System
+- **Training Status**: Visual indicators for trained/untrained items
+- **Retraining Logic**: Automatic detection when retraining is needed
+- **Soft Deletion**: Items are marked inactive until retraining
+- **File Size Calculation**: Accurate size display for all content types
+
+### Enhanced UI
+- **Tabbed Interface**: Organized by content type
+- **Context-Aware Buttons**: Dynamic buttons based on active tab
+- **Floating Save Button**: Persistent save functionality
+- **Training Indicators**: Clear visual feedback for training status
 
 ## 🧠 Training Webhook Workflow
 
@@ -174,8 +220,8 @@ When a user clicks the "Train Bot" button, the application triggers a webhook to
     ```
 2.  **Acknowledge**: The app sets the agent's `is_training` flag to `true` in the database. The UI will show a "Training in progress..." status.
 3.  **External Processing**: Your separate backend service receives the webhook and performs the following tasks:
-    - Fetches all knowledge base files for the given `agentId` from the database.
-    - Runs your AI model training logic using these files.
+    - Fetches all active knowledge base items for the given `agentId` from the database.
+    - Runs your AI model training logic using these items.
     - Upon completion, it connects directly to the PostgreSQL database to update the training status.
 
 ### **Required Database Updates (For External Backend)**
@@ -191,11 +237,14 @@ SET
   last_trained = CURRENT_TIMESTAMP 
 WHERE id = $1; -- Use the agentId from the webhook
 
--- Step 2: Mark the files that were used in the training as 'trained'.
--- This ensures the UI accurately reflects which files are part of the current knowledge base.
+-- Step 2: Mark the items that were used in the training as 'trained'.
 UPDATE knowledge_base 
 SET trained = true 
-WHERE agent_id = $1 AND id IN ($2, $3, ...); -- Provide the agentId and an array of file IDs that were successfully trained
+WHERE agent_id = $1 AND is_active = true;
+
+-- Step 3: Permanently delete inactive items (soft-deleted items)
+DELETE FROM knowledge_base 
+WHERE agent_id = $1 AND is_active = false;
 ```
 
 **On Failure:**
@@ -212,13 +261,20 @@ The project includes a comprehensive PostgreSQL schema for:
 
 ### Users Table
 - User authentication and profile management
-- Email, name, password (hashed), timestamps
+- Email, name, password (hashed), core credits, timestamps
 
 ### Agents Table
 - Comprehensive AI agent configurations
 - Company details, social media links, business information
 - Bot personality, goals, and tone settings
 - ManyChat integration fields
+- Enhanced responses configuration
+
+### Knowledge Base Table
+- Multi-format support (files, links, text, Q&A)
+- Soft deletion with `is_active` flag
+- Training status tracking
+- File metadata and content storage
 
 ### App Installs Table
 - ManyChat page connections
@@ -230,6 +286,10 @@ The project includes a comprehensive PostgreSQL schema for:
 - Support for user, agent, and AI message types
 - ManyChat user tracking
 
+### Intent Mappings Table
+- Intent-to-flow mapping for ManyChat
+- Agent-specific intent configurations
+
 ## 🎯 User Flow
 
 1. **Registration**: Users create accounts at `/register`
@@ -237,10 +297,12 @@ The project includes a comprehensive PostgreSQL schema for:
 3. **Dashboard**: Authenticated users access `/dashboard`
 4. **Agent Management**: 
    - Create new agents with detailed configurations
-   - Edit existing agent settings
+   - Edit existing agent settings with accordion-based interface
    - View agent details and performance
    - Manage ManyChat integrations
 5. **Agent Details**: Access specific agent pages at `/dashboard/agent/[agentId]`
+6. **Knowledge Base**: Add and manage training data across multiple formats
+7. **Training**: Trigger AI model training with visual feedback
 
 ## 🔐 Security Features
 
@@ -249,6 +311,7 @@ The project includes a comprehensive PostgreSQL schema for:
 - **SQL Injection Protection**: Parameterized queries
 - **Input Validation**: Server-side validation for all forms
 - **SSL Support**: Production-ready SSL configuration
+- **Domain Authorization**: Restricted access to authorized domains
 
 ## 🚀 Development
 
@@ -264,9 +327,15 @@ This is a **hybrid application** that combines:
 - **Hot Reload**: Development mode with automatic reloading
 - **TypeScript**: Full type safety throughout
 - **Component Library**: Shadcn UI with Radix primitives
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
 
 ## 📈 Roadmap
 
+- [x] Enhanced Knowledge Base with multiple data types
+- [x] Soft deletion for knowledge base items
+- [x] Floating save button with smart visibility
+- [x] Intent management system
+- [x] Enhanced responses configuration
 - [ ] ManyChat API integration
 - [ ] Real-time chat functionality
 - [ ] Analytics dashboard

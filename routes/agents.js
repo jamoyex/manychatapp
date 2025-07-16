@@ -113,7 +113,7 @@ module.exports = (pool) => {
 
   // --- KNOWLEDGE BASE ROUTES (must be before /:id) ---
 
-  // GET /api/agents/:id/knowledge-base - Fetch knowledge base files for an agent
+  // GET /api/agents/:id/knowledge-base - Fetch knowledge base items for an agent
   router.get('/:id/knowledge-base', async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -122,7 +122,27 @@ module.exports = (pool) => {
     try {
       const { id } = req.params;
       const { rows } = await pool.query(
-        'SELECT * FROM knowledge_base WHERE agent_id = $1 ORDER BY uploaded_at DESC',
+        `SELECT 
+          id, 
+          agent_id, 
+          knowledge_base_type,
+          title,
+          file_name, 
+          file_size, 
+          file_type, 
+          file_url, 
+          link,
+          content,
+          question,
+          answer,
+          trained, 
+          status, 
+          uploaded_at,
+          last_updated,
+          is_active
+        FROM knowledge_base 
+        WHERE agent_id = $1
+        ORDER BY uploaded_at DESC`,
         [id]
       );
       res.json({ knowledgeBase: rows });
@@ -183,9 +203,28 @@ module.exports = (pool) => {
 
         // Save to database
         const result = await pool.query(
-          `INSERT INTO knowledge_base (agent_id, file_name, file_size, file_type, status, file_url)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [agentId, file.originalname, file.size, file.mimetype, 'UPLOADED', publicUrl]
+          `INSERT INTO knowledge_base (
+            agent_id, 
+            knowledge_base_type, 
+            title, 
+            file_name, 
+            file_size, 
+            file_type, 
+            status, 
+            file_url,
+            last_updated
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING *`,
+          [
+            agentId, 
+            'file', 
+            `File: ${file.originalname}`, 
+            file.originalname, 
+            file.size, 
+            file.mimetype, 
+            'UPLOADED', 
+            publicUrl
+          ]
         );
 
         return result.rows[0];
@@ -263,17 +302,102 @@ module.exports = (pool) => {
         }
       }
 
-      // Delete from database
+      // Soft delete by marking as inactive
       await pool.query(
-        'DELETE FROM knowledge_base WHERE id = $1 AND agent_id = $2',
+        'UPDATE knowledge_base SET is_active = false WHERE id = $1 AND agent_id = $2',
         [fileId, agentId]
       );
 
-      res.json({ message: 'File deleted successfully.' });
+      res.json({ 
+        message: `${file.knowledge_base_type} marked for deletion. Click "Train Bot" to permanently remove.` 
+      });
 
     } catch (error) {
       console.error('Delete knowledge base file error:', error);
       res.status(500).json({ error: 'Failed to delete file' });
+    }
+  });
+
+  // PUT /api/agents/:id/knowledge-base/:fileId - Update a knowledge base item
+  router.put('/:id/knowledge-base/:fileId', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { id: agentId, fileId } = req.params;
+    const { link, content, question, answer, title, trained } = req.body;
+
+    try {
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [agentId, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Get item info before update
+      const itemResult = await pool.query(
+        'SELECT * FROM knowledge_base WHERE id = $1 AND agent_id = $2 AND is_active = true',
+        [fileId, agentId]
+      );
+
+      if (itemResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Item not found.' });
+      }
+
+      const item = itemResult.rows[0];
+
+      // Build update query based on item type
+      let updateQuery = 'UPDATE knowledge_base SET last_updated = CURRENT_TIMESTAMP';
+      let updateParams = [];
+      let paramIndex = 1;
+
+      if (item.knowledge_base_type === 'link' && link !== undefined) {
+        updateQuery += `, link = $${paramIndex++}`;
+        updateParams.push(link);
+      }
+
+      if (item.knowledge_base_type === 'text' && content !== undefined) {
+        updateQuery += `, content = $${paramIndex++}`;
+        updateParams.push(content);
+      }
+
+      if (item.knowledge_base_type === 'qa') {
+        if (question !== undefined) {
+          updateQuery += `, question = $${paramIndex++}`;
+          updateParams.push(question);
+        }
+        if (answer !== undefined) {
+          updateQuery += `, answer = $${paramIndex++}`;
+          updateParams.push(answer);
+        }
+      }
+
+      if (title !== undefined) {
+        updateQuery += `, title = $${paramIndex++}`;
+        updateParams.push(title);
+      }
+
+      if (trained !== undefined) {
+        updateQuery += `, trained = $${paramIndex++}`;
+        updateParams.push(trained);
+      }
+
+      updateQuery += ` WHERE id = $${paramIndex++} AND agent_id = $${paramIndex++}`;
+      updateParams.push(fileId, agentId);
+
+      await pool.query(updateQuery, updateParams);
+
+      res.json({ 
+        message: `${item.knowledge_base_type} updated successfully. Click "Train Bot" to apply changes.` 
+      });
+
+    } catch (error) {
+      console.error('Update knowledge base item error:', error);
+      res.status(500).json({ error: 'Failed to update item' });
     }
   });
 
@@ -304,9 +428,15 @@ module.exports = (pool) => {
         return res.status(400).json({ error: 'Training is already in progress for this agent.' });
       }
 
-      // Get current knowledge base files to get a count
+      // Get current knowledge base files to get a count (only active items)
       const knowledgeBaseResult = await pool.query(
-        'SELECT id FROM knowledge_base WHERE agent_id = $1',
+        'SELECT id FROM knowledge_base WHERE agent_id = $1 AND is_active = true',
+        [agent.id]
+      );
+
+      // Check if there are inactive items that need permanent deletion
+      const inactiveItemsResult = await pool.query(
+        'SELECT id FROM knowledge_base WHERE agent_id = $1 AND is_active = false',
         [agent.id]
       );
 
@@ -324,6 +454,12 @@ module.exports = (pool) => {
       } else {
         console.warn('KNOWLEDGE_BASE_WEBHOOK_URL not configured - training webhook skipped');
       }
+
+      // Permanently delete inactive items before training
+      await pool.query(
+        'DELETE FROM knowledge_base WHERE agent_id = $1 AND is_active = false',
+        [agent.id]
+      );
 
       // Set is_training = true
       await pool.query(
@@ -417,23 +553,23 @@ module.exports = (pool) => {
 
         // Create the agent
         const newAgent = await client.query(
-          `INSERT INTO agents (
-            owner_id, agent_id, bot_name, company_name, industry, support_email_address,
-            details_about_company, details_about_product_or_service, bot_tone_for_replies, bot_primary_goal
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-          [
-            req.session.userId,
-            agent_id,
-            bot_name,
-            company_name || null,
-            industry || null,
-            support_email_address || null,
-            company_description || null, // Mapped from details_about_company
-            target_audience_description || null, // Mapped from details_about_product_or_service
-            tone_and_style_guide || null, // Mapped from bot_tone_for_replies
-            specific_instructions || null // Mapped from bot_primary_goal
-          ]
-        );
+        `INSERT INTO agents (
+          owner_id, agent_id, bot_name, company_name, industry, support_email_address,
+          details_about_company, details_about_product_or_service, bot_tone_for_replies, bot_primary_goal
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        [
+          req.session.userId,
+          agent_id,
+          bot_name,
+          company_name || null,
+          industry || null,
+          support_email_address || null,
+          company_description || null, // Mapped from details_about_company
+          target_audience_description || null, // Mapped from details_about_product_or_service
+          tone_and_style_guide || null, // Mapped from bot_tone_for_replies
+          specific_instructions || null // Mapped from bot_primary_goal
+        ]
+      );
 
         // Deduct 1 credit from user
         await client.query(
@@ -762,6 +898,136 @@ module.exports = (pool) => {
     } catch (error) {
       console.error('Update enhanced responses error:', error);
       res.status(500).json({ error: 'Failed to update enhanced responses settings' });
+    }
+  });
+
+  // Add knowledge base item (link, text, or Q&A)
+  router.post('/:agentId/knowledge', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { knowledge_base_type, link, content, question, answer } = req.body;
+
+      // Validate agent exists
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1',
+        [agentId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found' });
+      }
+
+      let title = '';
+      let insertData = {};
+
+      switch (knowledge_base_type) {
+        case 'link':
+          if (!link || !link.trim()) {
+            return res.status(400).json({ error: 'Link is required' });
+          }
+          title = `Link: ${new URL(link).hostname}`;
+          insertData = { link: link.trim() };
+          break;
+
+        case 'text':
+          if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Content is required' });
+          }
+          title = `Text: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`;
+          insertData = { content: content.trim() };
+          break;
+
+        case 'qa':
+          if (!question || !question.trim() || !answer || !answer.trim()) {
+            return res.status(400).json({ error: 'Question and answer are required' });
+          }
+          title = `Q&A: ${question.substring(0, 50)}${question.length > 50 ? '...' : ''}`;
+          insertData = { question: question.trim(), answer: answer.trim() };
+          break;
+
+        default:
+          return res.status(400).json({ error: 'Invalid knowledge_base_type. Must be link, text, or qa' });
+      }
+
+      // Calculate file size for the knowledge base item
+      let fileSize = 0;
+      switch (knowledge_base_type) {
+        case 'link':
+          try {
+            // Make a GET request to the link to estimate file size
+            const response = await fetch(link, {
+              method: 'GET',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; BBCoreBot/1.0)'
+              },
+              timeout: 10000 // 10 second timeout
+            });
+            
+            if (response.ok) {
+              // Get content length from headers if available
+              const contentLength = response.headers.get('content-length');
+              if (contentLength) {
+                fileSize = parseInt(contentLength);
+              } else {
+                // If no content-length header, read the response and extract meaningful text
+                const html = await response.text();
+                
+                // Extract text content by removing HTML tags and scripts
+                let textContent = html
+                  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove script tags
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove style tags
+                  .replace(/<[^>]+>/g, ' ') // Remove all HTML tags
+                  .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                  .trim(); // Remove leading/trailing whitespace
+                
+                // Calculate size based on extracted text content only
+                fileSize = Buffer.byteLength(textContent, 'utf8');
+              }
+            } else {
+              // Fallback to URL length if request fails
+              fileSize = Buffer.byteLength(link || '', 'utf8');
+            }
+          } catch (error) {
+            console.error('Error fetching link for size estimation:', error);
+            // Fallback to URL length if request fails
+            fileSize = Buffer.byteLength(link || '', 'utf8');
+          }
+          break;
+        case 'text':
+          fileSize = Buffer.byteLength(content || '', 'utf8'); // More accurate UTF-8 byte calculation
+          break;
+        case 'qa':
+          fileSize = Buffer.byteLength((question || '') + (answer || ''), 'utf8'); // More accurate UTF-8 byte calculation
+          break;
+      }
+
+      // Insert into knowledge_base table
+      const result = await pool.query(
+        `INSERT INTO knowledge_base 
+         (agent_id, knowledge_base_type, title, link, content, question, answer, file_size, status, last_updated) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+         RETURNING *`,
+        [
+          agentId,
+          knowledge_base_type,
+          title,
+          insertData.link || null,
+          insertData.content || null,
+          insertData.question || null,
+          insertData.answer || null,
+          fileSize,
+          'PENDING'
+        ]
+      );
+
+      res.status(201).json({ 
+        success: true, 
+        knowledgeItem: result.rows[0] 
+      });
+
+    } catch (error) {
+      console.error('Error adding knowledge base item:', error);
+      res.status(500).json({ error: 'Failed to add knowledge base item' });
     }
   });
 

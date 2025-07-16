@@ -109,6 +109,7 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                       <TabsTrigger value="company">Company</TabsTrigger>
                       <TabsTrigger value="leader_product">Leader & Product</TabsTrigger>
                       <TabsTrigger value="links">Links</TabsTrigger>
+                      <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                       <TabsTrigger value="advanced">Advanced</TabsTrigger>
                     </TabsList>
                   </div>
@@ -157,20 +158,20 @@ export function EditAgentModal({ agentId, isOpen, onClose, onAgentUpdated }: Edi
                 </TabContentWrapper>
               </TabsContent>
 
+              <TabsContent value="knowledge">
+                <TabContentWrapper>
+                  {agentId && <KnowledgeBaseTab agentId={agentId} agent={formData} />}
+                </TabContentWrapper>
+              </TabsContent>
+
               <TabsContent value="advanced">
                 <Tabs value={activeAdvancedTab} onValueChange={setActiveAdvancedTab} className="w-full">
                   <div className="mb-4 border-b">
                     <TabsList>
-                      <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                       <TabsTrigger value="intents">Intent Checker</TabsTrigger>
                       <TabsTrigger value="enhanced">Enhanced Responses</TabsTrigger>
                     </TabsList>
                   </div>
-                  <TabsContent value="knowledge">
-                    <TabContentWrapper>
-                      {agentId && <KnowledgeBaseTab agentId={agentId} agent={formData} />}
-                    </TabContentWrapper>
-                  </TabsContent>
                   <TabsContent value="intents">
                     <TabContentWrapper>
                       {agentId && <IntentCheckerTab agentId={agentId} />}

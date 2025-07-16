@@ -33,25 +33,6 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   return data
 }
 
-export async function loginUserByEmail(email: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ email })
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Login failed')
-  }
-
-  return data
-}
-
 export async function loginUserByUUID(uuid: string): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/login-uuid`, {
     method: 'POST',

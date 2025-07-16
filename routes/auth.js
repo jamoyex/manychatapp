@@ -61,43 +61,6 @@ module.exports = (pool) => {
     }
   });
 
-  // POST /api/auth/login-email (for email-only authentication)
-  router.post('/login-email', async (req, res) => {
-    try {
-      const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
-      }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'Invalid email format' });
-      }
-
-      const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-      if (user.rows.length === 0) {
-        return res.status(401).json({ error: 'User not found with this email' });
-      }
-
-      // Set session for the user
-      req.session.userId = user.rows[0].id;
-      res.json({ 
-        message: 'Login successful',
-        user: { 
-          id: user.rows[0].id, 
-          name: user.rows[0].name, 
-          email: user.rows[0].email,
-          uuid: user.rows[0].uuid 
-        } 
-      });
-    } catch (error) {
-      console.error('Email login error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
   // POST /api/auth/login-uuid (for UUID-based authentication)
   router.post('/login-uuid', async (req, res) => {
     try {

@@ -1,4 +1,4 @@
-import { GHL_CONFIG } from './config';
+import { GHL_CONFIG, validateGHLEnvVars } from './config';
 import type { 
   GHLIntegration, 
   GHLTokenResponse, 
@@ -31,6 +31,8 @@ function decrypt(encryptedText: string, key: string): string {
 
 // GHL OAuth URL generator
 export function generateGHLOAuthUrl(agentId: number, state?: string): string {
+  validateGHLEnvVars();
+  
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: GHL_CONFIG.clientId,
@@ -44,6 +46,8 @@ export function generateGHLOAuthUrl(agentId: number, state?: string): string {
 
 // Exchange authorization code for tokens
 export async function exchangeCodeForTokens(code: string): Promise<GHLTokenResponse> {
+  validateGHLEnvVars();
+  
   const response = await fetch('https://services.gohighlevel.com/oauth/token', {
     method: 'POST',
     headers: {
@@ -68,6 +72,8 @@ export async function exchangeCodeForTokens(code: string): Promise<GHLTokenRespo
 
 // Refresh access token
 export async function refreshAccessToken(refreshToken: string): Promise<GHLTokenResponse> {
+  validateGHLEnvVars();
+  
   const response = await fetch('https://services.gohighlevel.com/oauth/token', {
     method: 'POST',
     headers: {
@@ -117,6 +123,8 @@ export async function createGHLIntegration(
   locationName?: string,
   companyName?: string
 ): Promise<GHLIntegration> {
+  validateGHLEnvVars();
+  
   const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
   
   // Encrypt tokens before storing
@@ -161,6 +169,8 @@ export async function updateGHLTokens(
   refreshToken: string,
   expiresIn: number
 ): Promise<void> {
+  validateGHLEnvVars();
+  
   const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
   
   // Encrypt tokens before storing
@@ -180,6 +190,8 @@ export async function updateGHLTokens(
 
 // Get valid access token (with automatic refresh)
 export async function getValidAccessToken(agentId: number): Promise<string> {
+  validateGHLEnvVars();
+  
   const integration = await getGHLIntegration(agentId);
   
   if (!integration) {
@@ -214,6 +226,7 @@ export class GHLAPIClient {
   private accessToken: string;
 
   constructor(accessToken: string) {
+    validateGHLEnvVars();
     this.accessToken = accessToken;
   }
 

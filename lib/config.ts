@@ -10,19 +10,24 @@ export const GHL_CONFIG = {
   encryptionKey: process.env.ENCRYPTION_KEY!,
 } as const;
 
-// Validate GHL environment variables
-const requiredGHLEnvVars = [
-  'GHL_CLIENT_ID',
-  'GHL_CLIENT_SECRET', 
-  'GHL_REDIRECT_URI',
-  'ENCRYPTION_KEY'
-];
+// Validate GHL environment variables only when needed
+function validateGHLEnvVars() {
+  const requiredGHLEnvVars = [
+    'GHL_CLIENT_ID',
+    'GHL_CLIENT_SECRET', 
+    'GHL_REDIRECT_URI',
+    'ENCRYPTION_KEY'
+  ];
 
-for (const envVar of requiredGHLEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Missing required GHL environment variable: ${envVar}`);
+  for (const envVar of requiredGHLEnvVars) {
+    if (!process.env[envVar]) {
+      throw new Error(`Missing required GHL environment variable: ${envVar}`);
+    }
   }
 }
+
+// Export the validation function for use when needed
+export { validateGHLEnvVars };
 
 export const AUTH_CONFIG = {
   // Allowed domains that can use the email-based authentication redirect

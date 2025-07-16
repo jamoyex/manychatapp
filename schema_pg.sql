@@ -82,6 +82,22 @@ CREATE TABLE app_installs (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Go High Level Integrations table
+CREATE TABLE ghl_integrations (
+    id SERIAL PRIMARY KEY,
+    agent_id INTEGER UNIQUE REFERENCES agents(id) ON DELETE CASCADE,
+    ghl_location_id VARCHAR(255) NOT NULL,
+    ghl_company_id VARCHAR(255) NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    token_expires_at TIMESTAMP NOT NULL,
+    location_name VARCHAR(255),
+    company_name VARCHAR(255),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Messages table
 CREATE TABLE messages (
     id SERIAL PRIMARY KEY,
@@ -140,6 +156,8 @@ CREATE INDEX idx_knowledge_base_agent_type ON knowledge_base(agent_id, knowledge
 CREATE INDEX idx_knowledge_base_is_active ON knowledge_base(is_active);
 CREATE INDEX idx_intent_mappings_agent_id ON intent_mappings(agent_id);
 CREATE INDEX idx_users_uuid ON users(uuid) WHERE uuid IS NOT NULL;
+CREATE INDEX idx_ghl_integrations_agent_id ON ghl_integrations(agent_id);
+CREATE INDEX idx_ghl_integrations_location_id ON ghl_integrations(ghl_location_id);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -186,6 +204,9 @@ CREATE TRIGGER update_intent_mappings_timestamp
     BEFORE UPDATE ON intent_mappings
     FOR EACH ROW
     EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER update_ghl_integrations_updated_at BEFORE UPDATE ON ghl_integrations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Add comments to document the enhanced structure
 COMMENT ON TABLE knowledge_base IS 'Enhanced knowledge base table supporting files, links, texts, and Q&A pairs for AI training. knowledge_base_type categorizes the content type.';

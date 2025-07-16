@@ -1,5 +1,29 @@
 // Configuration for authentication and security settings
 
+// Go High Level Configuration
+export const GHL_CONFIG = {
+  clientId: process.env.GHL_CLIENT_ID!,
+  clientSecret: process.env.GHL_CLIENT_SECRET!,
+  redirectUri: process.env.GHL_REDIRECT_URI || 'http://localhost:3000/api/connect/callback',
+  apiBaseUrl: process.env.GHL_API_BASE_URL || 'https://rest.gohighlevel.com/v1',
+  oauthUrl: process.env.GHL_OAUTH_URL || 'https://marketplace.gohighlevel.com/oauth/chooselocation',
+  encryptionKey: process.env.ENCRYPTION_KEY!,
+} as const;
+
+// Validate GHL environment variables
+const requiredGHLEnvVars = [
+  'GHL_CLIENT_ID',
+  'GHL_CLIENT_SECRET', 
+  'GHL_REDIRECT_URI',
+  'ENCRYPTION_KEY'
+];
+
+for (const envVar of requiredGHLEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required GHL environment variable: ${envVar}`);
+  }
+}
+
 export const AUTH_CONFIG = {
   // Allowed domains that can use the email-based authentication redirect
   ALLOWED_DOMAINS: [

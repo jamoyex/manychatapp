@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 3000;
 // Route handlers
 const authRoutes = require('./routes/auth');
 const agentRoutes = require('./routes/agents');
+const connectRoutes = require('./routes/connect');
+const publicRoutes = require('./routes/public');
 
 // Database connection
 const pool = new Pool({
@@ -52,6 +54,8 @@ app.prepare().then(() => {
   // API Routes
   server.use('/api/auth', authRoutes(pool));
   server.use('/api/agents', agentRoutes(pool));
+  server.use('/api/connect', connectRoutes(pool));
+  server.use('/api/public', publicRoutes(pool)); // Public API endpoints
 
   // Handle all other requests with Next.js
   server.all('*', (req, res) => {

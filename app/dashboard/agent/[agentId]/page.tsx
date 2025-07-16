@@ -7,6 +7,7 @@ import { IntentCheckerTab } from '@/components/dashboard/IntentCheckerTab'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { KnowledgeBaseTab } from '@/components/dashboard/KnowledgeBaseTab'
 import { EnhancedResponsesTab } from '@/components/dashboard/EnhancedResponsesTab'
+import { IntegrationsTab } from '@/components/dashboard/IntegrationsTab'
 
 // It's good practice to have shared type definitions.
 // For now, we define it here.
@@ -86,6 +87,7 @@ export default async function ViewAgentPage({ params, searchParams }: PageProps)
                         <TabsTrigger value="knowledge-base">Knowledge Base</TabsTrigger>
                         <TabsTrigger value="intent-checker">Intent Checker</TabsTrigger>
                         <TabsTrigger value="enhanced-responses">Enhanced Responses</TabsTrigger>
+                        <TabsTrigger value="integrations">Integrations</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details">
                         <Card>
@@ -160,6 +162,20 @@ export default async function ViewAgentPage({ params, searchParams }: PageProps)
                     <TabsContent value="enhanced-responses">
                         <Suspense fallback={<div>Loading enhanced responses...</div>}>
                             <EnhancedResponsesTab agentId={agentIdNumber} agent={agent} />
+                        </Suspense>
+                    </TabsContent>
+                    <TabsContent value="integrations">
+                        <Suspense fallback={<div>Loading integrations...</div>}>
+                            <IntegrationsTab 
+                                agentId={agentIdNumber}
+                                agentName={agent.bot_name}
+                                agentIdString={resolvedParams.agentId}
+                                userEmail=""
+                                installLink=""
+                                isInstalled={false}
+                                ghlConnected={false}
+                                onConnect={() => {}}
+                            />
                         </Suspense>
                     </TabsContent>
                 </Tabs>

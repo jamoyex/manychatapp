@@ -442,6 +442,8 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
                   userEmail={userEmail}
                   installLink={installLink}
                   isInstalled={agent.is_installed}
+                  ghlConnected={false}
+                  onConnect={() => {}}
                 />
               </TabContentWrapper>
             </TabsContent>

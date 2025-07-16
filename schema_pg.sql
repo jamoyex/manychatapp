@@ -65,7 +65,8 @@ CREATE TABLE agents (
     template_installed BOOLEAN DEFAULT false,
     loader_enabled BOOLEAN DEFAULT false,
     gallery_enabled BOOLEAN DEFAULT false,
-    quick_replies_enabled BOOLEAN DEFAULT false
+    quick_replies_enabled BOOLEAN DEFAULT false,
+    bot_image_url TEXT
 );
 
 -- Connected ManyChat Accounts table

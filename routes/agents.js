@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const multer = require('multer');
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const sharp = require('sharp');
 const axios = require('axios');
 
 const storage = multer.memoryStorage();
@@ -667,6 +668,164 @@ module.exports = (pool) => {
     } catch (error) {
       console.error('Update agent error:', error);
       res.status(500).json({ error: 'Failed to update agent' });
+    }
+  });
+
+  // Upload bot image for an agent
+  router.post('/:agentId/upload-bot-image', upload.single('botImage'), async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { agentId } = req.params;
+      
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [agentId, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.' });
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ error: 'File size too large. Maximum size is 5MB.' });
+      }
+
+      // Compress image using sharp
+      const compressedBuffer = await sharp(req.file.buffer)
+        .resize(800, 800, { fit: 'inside' }) // Resize to max 800x800 pixels, maintaining aspect ratio
+        .jpeg({ quality: 80 }) // Compress as JPEG with 80% quality
+        .toBuffer();
+
+      // Generate unique filename (always use .jpg for compressed images)
+      const fileName = `bot-images/${agentId}/${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
+
+      // Initialize R2 client
+      const r2Client = new S3Client({
+        region: 'auto',
+        endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: process.env.R2_ACCESS_KEY_ID,
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+        },
+      });
+
+      // Upload to Cloudflare R2
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileName,
+          Body: compressedBuffer, // Use compressed buffer
+          ContentType: 'image/jpeg', // Always JPEG for compressed images
+          Metadata: {
+            originalName: req.file.originalname,
+            agentId: agentId.toString(),
+            uploadedBy: req.session.userId.toString(),
+            originalSize: req.file.size.toString(),
+            compressedSize: compressedBuffer.length.toString()
+          }
+        })
+      );
+
+      // Generate public URL
+      const imageUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
+
+      // Update agent with new image URL
+      await pool.query(
+        'UPDATE agents SET bot_image_url = $1 WHERE id = $2',
+        [imageUrl, agentId]
+      );
+
+      // Fetch updated agent
+      const updatedAgentResult = await pool.query(`
+        SELECT 
+            a.*, 
+            CASE WHEN ai.id IS NOT NULL THEN true ELSE false END as is_installed
+        FROM 
+            agents a
+        LEFT JOIN 
+            app_installs ai ON a.id = ai.agent_id
+        WHERE 
+            a.id = $1 AND a.owner_id = $2
+      `, [agentId, req.session.userId]);
+
+      res.json({ 
+        success: true, 
+        imageUrl,
+        agent: updatedAgentResult.rows[0]
+      });
+
+    } catch (error) {
+      console.error('Error uploading bot image:', error);
+      res.status(500).json({ error: 'Failed to upload bot image' });
+    }
+  });
+
+  // Get ManyChat page info for an agent
+  router.get('/:agentId/manychat-page-info', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { agentId } = req.params;
+      
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [agentId, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Get the app token from app_installs
+      const installResult = await pool.query(
+        'SELECT app_token FROM app_installs WHERE agent_id = $1 AND is_active = true',
+        [agentId]
+      );
+
+      if (installResult.rows.length === 0) {
+        return res.status(404).json({ error: 'ManyChat not connected for this agent' });
+      }
+
+      const appToken = installResult.rows[0].app_token;
+
+      // Make request to ManyChat API to get page info
+      const response = await fetch('https://api.manychat.com/fb/page/getInfo', {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${appToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch page info from ManyChat');
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching ManyChat page info:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

@@ -164,6 +164,7 @@ export default function DashboardPage() {
           onAgentUpdated={handleAgentUpdated}
           onInstallClick={handleInstallClick}
           installLink={installLink}
+          userEmail={user?.email}
         />
       ) : (
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">

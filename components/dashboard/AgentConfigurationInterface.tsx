@@ -13,6 +13,7 @@ import { IntentCheckerTab } from './IntentCheckerTab'
 import { EnhancedResponsesTab } from './EnhancedResponsesTab'
 import { toast } from 'sonner'
 import { IntegrationsTab } from './IntegrationsTab'
+import { BotImageUpload } from './BotImageUpload'
 
 interface Agent {
   id: number
@@ -37,6 +38,7 @@ interface AgentConfigurationInterfaceProps {
   onAgentUpdated: (updatedAgent: Agent) => void
   onInstallClick?: () => void
   installLink?: string
+  userEmail?: string
 }
 
 const TabContentWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -45,7 +47,7 @@ const TabContentWrapper = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
-export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallClick, installLink }: AgentConfigurationInterfaceProps) {
+export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallClick, installLink, userEmail }: AgentConfigurationInterfaceProps) {
   const [formData, setFormData] = useState(agent)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('core')
@@ -133,6 +135,12 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
     } catch (error) {
       toast.error('Failed to copy Agent ID')
     }
+  }
+
+  const handleImageUploaded = (imageUrl: string) => {
+    const updatedAgent = { ...agent, bot_image_url: imageUrl }
+    onAgentUpdated(updatedAgent)
+    toast.success('Bot image uploaded successfully')
   }
 
     return (
@@ -296,6 +304,14 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
                            <Label htmlFor="bot_tone_for_replies">Tone for Replies</Label>
                            <Input id="bot_tone_for_replies" name="bot_tone_for_replies" value={formData.bot_tone_for_replies || ''} onChange={handleChange} />
                          </div>
+                         
+                         {/* Bot Image Upload */}
+                         <BotImageUpload
+                           agentId={agent.id}
+                           agentName={agent.bot_name}
+                           currentImageUrl={agent.bot_image_url}
+                           onImageUploaded={handleImageUploaded}
+                         />
                        </div>
                      </AccordionContent>
                    </AccordionItem>
@@ -419,7 +435,14 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
 
                                      <TabsContent value="integrations">
               <TabContentWrapper>
-                <IntegrationsTab agentId={agent.id} />
+                <IntegrationsTab 
+                  agentId={agent.id}
+                  agentName={agent.bot_name}
+                  agentIdString={agent.agent_id}
+                  userEmail={userEmail}
+                  installLink={installLink}
+                  isInstalled={agent.is_installed}
+                />
               </TabContentWrapper>
             </TabsContent>
 
@@ -466,7 +489,7 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
           </Tabs>
 
           <div className="flex justify-end p-6 border-t">
-            {activeTab !== 'advanced' && activeTab !== 'knowledge' && (
+            {activeTab !== 'advanced' && activeTab !== 'knowledge' && activeTab !== 'integrations' && (
               <Button type="submit" form="agent-form" disabled={isLoading || !hasUnsavedChanges}>
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>

@@ -4,30 +4,41 @@
     // Widget configuration
     const config = {
         agentId: null,
-        apiUrl: window.location.origin,
+        apiUrl: null, // Will be set from script source
         widgetId: 'bb-chat-widget',
         position: 'bottom-right',
         width: 350,
         height: 500,
         theme: {
-            primaryColor: '#007bff',
-            secondaryColor: '#6c757d',
+            primaryColor: '#1976d2',
+            secondaryColor: '#757575',
             backgroundColor: '#ffffff',
-            textColor: '#333333',
-            borderRadius: '12px',
-            shadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+            textColor: '#1c1c1c',
+            headerColor: '#f5f5f5',
+            borderRadius: '16px',
+            shadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+            inputBorder: '#e5e5e5'
         },
         messages: {
-            welcome: "Hello! I'm here to help you. How can I assist you today?",
-            placeholder: "Type your message...",
+            welcome: "Hello! I'm your AI assistant. How can I help you today?",
+            placeholder: "Ask me anything...",
             sendButton: "Send"
         }
     };
 
-    // Get agent ID from script tag
+    // Get agent ID and API URL from script tag
     const script = document.currentScript || document.querySelector('script[data-agent-id]');
     if (script && script.getAttribute('data-agent-id')) {
         config.agentId = script.getAttribute('data-agent-id');
+        
+        // Get API URL from script source
+        const scriptSrc = script.src;
+        if (scriptSrc) {
+            const url = new URL(scriptSrc);
+            config.apiUrl = url.origin;
+        } else {
+            config.apiUrl = window.location.origin;
+        }
     } else {
         console.error('BB Chat Widget: Missing data-agent-id attribute');
         return;
@@ -39,6 +50,7 @@
     let messages = [];
     let isTyping = false;
     let webhookUrl = null;
+    let agentData = null;
 
     // Create widget HTML
     function createWidget() {
@@ -52,21 +64,23 @@
             ">
                 <!-- Chat Button -->
                 <div id="${config.widgetId}-button" style="
-                    width: 60px;
-                    height: 60px;
-                    background-color: ${config.theme.primaryColor};
+                    width: 64px;
+                    height: 64px;
+                    background: linear-gradient(135deg, ${config.theme.primaryColor} 0%, #1565c0 100%);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
                     box-shadow: ${config.theme.shadow};
-                    transition: all 0.3s ease;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     color: white;
-                    font-size: 24px;
-                " title="Chat with us">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    font-size: 20px;
+                    border: 2px solid rgba(255, 255, 255, 0.2);
+                " title="Chat with AI Assistant">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        <path d="M8 10h.01M12 10h.01M16 10h.01"></path>
                     </svg>
                 </div>
 
@@ -87,39 +101,86 @@
                 ">
                     <!-- Header -->
                     <div style="
-                        background-color: ${config.theme.primaryColor};
-                        color: white;
-                        padding: 15px 20px;
+                        background: linear-gradient(135deg, ${config.theme.headerColor} 0%, #fafafa 100%);
+                        color: ${config.theme.textColor};
+                        padding: 20px 24px;
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
                         border-radius: ${config.theme.borderRadius} ${config.theme.borderRadius} 0 0;
+                        border-bottom: 1px solid #e0e0e0;
                     ">
-                        <div style="font-weight: 600; font-size: 16px;">Chat with AI</div>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                        ">
+                            <div id="${config.widgetId}-avatar" style="
+                                width: 32px;
+                                height: 32px;
+                                background: linear-gradient(135deg, ${config.theme.primaryColor} 0%, #1565c0 100%);
+                                border-radius: 8px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: white;
+                                font-weight: 700;
+                                font-size: 14px;
+                                overflow: hidden;
+                            ">AI</div>
+                            <div id="${config.widgetId}-name" style="
+                                font-weight: 600;
+                                font-size: 16px;
+                                color: ${config.theme.textColor};
+                            ">AI Assistant</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="${config.widgetId}-clear" style="
+                                background: none;
+                                border: none;
+                                color: ${config.theme.secondaryColor};
+                                cursor: pointer;
+                                padding: 8px;
+                                border-radius: 6px;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            " title="Clear Chat">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="3,6 5,6 21,6"></polyline>
+                                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                </svg>
+                            </button>
                             <button id="${config.widgetId}-minimize" style="
                                 background: none;
                                 border: none;
-                                color: white;
+                                color: ${config.theme.secondaryColor};
                                 cursor: pointer;
-                                padding: 5px;
-                                border-radius: 4px;
-                                transition: background-color 0.2s;
+                                padding: 8px;
+                                border-radius: 6px;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
                             " title="Minimize">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
                             <button id="${config.widgetId}-close" style="
                                 background: none;
                                 border: none;
-                                color: white;
+                                color: ${config.theme.secondaryColor};
                                 cursor: pointer;
-                                padding: 5px;
-                                border-radius: 4px;
-                                transition: background-color 0.2s;
+                                padding: 8px;
+                                border-radius: 6px;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
                             " title="Close">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
                                 </svg>
@@ -131,42 +192,46 @@
                     <div id="${config.widgetId}-messages" style="
                         flex: 1;
                         overflow-y: auto;
-                        padding: 20px;
-                        background-color: #f8f9fa;
+                        padding: 24px;
+                        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+                        background-color: #fafafa;
                     ">
                         <!-- Messages will be inserted here -->
                     </div>
 
                     <!-- Input Container -->
                     <div style="
-                        padding: 15px 20px;
-                        border-top: 1px solid #e9ecef;
+                        padding: 20px 24px;
+                        border-top: 1px solid #e0e0e0;
                         background-color: ${config.theme.backgroundColor};
                     ">
-                        <form id="${config.widgetId}-form" style="display: flex; gap: 10px; align-items: center;">
+                        <form id="${config.widgetId}-form" style="display: flex; gap: 12px; align-items: center;">
                             <input id="${config.widgetId}-input" type="text" placeholder="${config.messages.placeholder}" style="
                                 flex: 1;
-                                padding: 10px 15px;
-                                border: 1px solid #ced4da;
-                                border-radius: 20px;
+                                padding: 12px 16px;
+                                border: 1px solid ${config.theme.inputBorder};
+                                border-radius: 24px;
                                 font-size: 14px;
                                 outline: none;
-                                transition: border-color 0.2s;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                background-color: #ffffff;
+                                color: ${config.theme.textColor};
                             ">
                             <button type="submit" style="
-                                background-color: ${config.theme.primaryColor};
+                                background: linear-gradient(135deg, ${config.theme.primaryColor} 0%, #1565c0 100%);
                                 color: white;
                                 border: none;
                                 border-radius: 50%;
-                                width: 40px;
-                                height: 40px;
+                                width: 44px;
+                                height: 44px;
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
                                 cursor: pointer;
-                                transition: background-color 0.2s;
+                                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                                box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
                             ">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="22" y1="2" x2="11" y2="13"></line>
                                     <polygon points="22,2 15,22 11,13 2,9"></polygon>
                                 </svg>
@@ -213,23 +278,25 @@
         
         const isUser = sender === 'user';
         const messageStyle = `
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             align-items: ${isUser ? 'flex-end' : 'flex-start'};
         `;
         
         const bubbleStyle = `
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            line-height: 1.4;
+            max-width: 80%;
+            padding: 16px 20px;
+            border-radius: 20px;
+            line-height: 1.5;
             word-wrap: break-word;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            background-color: ${isUser ? config.theme.primaryColor : 'white'};
+            font-size: 14px;
+            box-shadow: ${isUser ? '0 2px 12px rgba(25, 118, 210, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.08)'};
+            background: ${isUser ? 'linear-gradient(135deg, ' + config.theme.primaryColor + ' 0%, #1565c0 100%)' : 'white'};
             color: ${isUser ? 'white' : config.theme.textColor};
-            border: ${isUser ? 'none' : '1px solid #e9ecef'};
-            border-bottom-${isUser ? 'right' : 'left'}-radius: 5px;
+            border: ${isUser ? 'none' : '1px solid #e8e8e8'};
+            border-bottom-${isUser ? 'right' : 'left'}-radius: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         `;
 
         messageDiv.style.cssText = messageStyle;
@@ -259,24 +326,26 @@
         const typingDiv = document.createElement('div');
         typingDiv.id = `${config.widgetId}-typing`;
         typingDiv.style.cssText = `
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
         `;
         typingDiv.innerHTML = `
             <div style="
-                max-width: 75%;
-                padding: 12px 16px;
-                border-radius: 18px;
+                max-width: 80%;
+                padding: 16px 20px;
+                border-radius: 20px;
                 background-color: white;
-                border: 1px solid #e9ecef;
-                border-bottom-left-radius: 5px;
+                border: 1px solid #e8e8e8;
+                border-bottom-left-radius: 6px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             ">
-                <div style="display: flex; align-items: center; gap: 3px;">
-                    <div style="width: 7px; height: 7px; background: #bbb; border-radius: 50%; animation: typing-bounce 1.2s infinite both;"></div>
-                    <div style="width: 7px; height: 7px; background: #bbb; border-radius: 50%; animation: typing-bounce 1.2s infinite both; animation-delay: 0.2s;"></div>
-                    <div style="width: 7px; height: 7px; background: #bbb; border-radius: 50%; animation: typing-bounce 1.2s infinite both; animation-delay: 0.4s;"></div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="width: 8px; height: 8px; background: #ccc; border-radius: 50%; animation: typing-bounce 1.2s infinite both;"></div>
+                    <div style="width: 8px; height: 8px; background: #ccc; border-radius: 50%; animation: typing-bounce 1.2s infinite both; animation-delay: 0.2s;"></div>
+                    <div style="width: 8px; height: 8px; background: #ccc; border-radius: 50%; animation: typing-bounce 1.2s infinite both; animation-delay: 0.4s;"></div>
                 </div>
             </div>
         `;
@@ -294,22 +363,33 @@
         }
     }
 
-    // Get webhook URL from server
+    // Get webhook URL and agent data from server
     async function getWebhookUrl() {
         if (webhookUrl) return webhookUrl;
         
         try {
-            const response = await fetch('/api/widget/config');
+            const response = await fetch(`${config.apiUrl}/api/public/widget/config?agent_id=${config.agentId}`);
             if (!response.ok) {
                 throw new Error('Failed to get webhook configuration');
             }
             const data = await response.json();
             webhookUrl = data.webhookUrl;
+            agentData = data.agent;
             return webhookUrl;
         } catch (error) {
             console.error('Error getting webhook URL:', error);
             throw new Error('Webhook configuration error');
         }
+    }
+
+    // Get initials from agent name
+    function getInitials(name) {
+        if (!name) return 'AI';
+        return name.split(' ')
+            .map(word => word.charAt(0))
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
     }
 
     // Send message to webhook
@@ -378,6 +458,49 @@
         return div.innerHTML;
     }
 
+    // Clear chat messages
+    function clearChat() {
+        // Clear messages array
+        messages = [];
+        
+        // Clear localStorage
+        localStorage.removeItem(`bb_widget_messages_${config.agentId}`);
+        localStorage.removeItem(`bb_session_id_${config.agentId}`);
+        
+        // Clear displayed messages
+        const messagesContainer = document.getElementById(`${config.widgetId}-messages`);
+        messagesContainer.innerHTML = '';
+        
+        // Add welcome message with agent name if available
+        const welcomeMessage = agentData && agentData.name 
+            ? `Hello! I'm ${agentData.name}. How can I help you today?`
+            : config.messages.welcome;
+        addMessage(welcomeMessage, 'bot');
+    }
+
+    // Update widget header with agent data
+    function updateWidgetHeader() {
+        const avatarElement = document.getElementById(`${config.widgetId}-avatar`);
+        const nameElement = document.getElementById(`${config.widgetId}-name`);
+        
+        if (agentData && avatarElement && nameElement) {
+            // Update name
+            nameElement.textContent = agentData.name || 'AI Assistant';
+            
+            // Update avatar
+            if (agentData.imageUrl) {
+                avatarElement.innerHTML = `<img src="${agentData.imageUrl}" alt="${agentData.name}" style="
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 8px;
+                ">`;
+            } else {
+                avatarElement.innerHTML = getInitials(agentData.name);
+            }
+        }
+    }
+
     // Toggle chat window
     function toggleChat() {
         const window = document.getElementById(`${config.widgetId}-window`);
@@ -390,11 +513,23 @@
             window.style.display = 'flex';
             button.style.transform = 'scale(0.9)';
             
+            // Load agent data and update header
+            if (!agentData) {
+                getWebhookUrl().then(() => {
+                    updateWidgetHeader();
+                }).catch(error => {
+                    console.error('Error loading agent data:', error);
+                });
+            }
+            
             // Load existing messages or add welcome message
             if (messages.length === 0) {
                 loadMessages();
                 if (messages.length === 0) {
-                    addMessage(config.messages.welcome, 'bot');
+                    const welcomeMessage = agentData && agentData.name 
+                        ? `Hello! I'm ${agentData.name}. How can I help you today?`
+                        : config.messages.welcome;
+                    addMessage(welcomeMessage, 'bot');
                 }
             }
         }
@@ -410,22 +545,47 @@
         const style = document.createElement('style');
         style.textContent = `
             @keyframes typing-bounce {
-                0%, 80%, 100% { transform: scale(0.7); opacity: 0.7; }
+                0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
                 40% { transform: scale(1); opacity: 1; }
             }
             
             #${config.widgetId}-button:hover {
-                transform: scale(1.1) !important;
+                transform: scale(1.05) !important;
+                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
             }
             
+            #${config.widgetId}-clear:hover,
             #${config.widgetId}-minimize:hover,
             #${config.widgetId}-close:hover {
-                background-color: rgba(255, 255, 255, 0.2) !important;
+                background-color: rgba(0, 0, 0, 0.05) !important;
+                color: ${config.theme.textColor} !important;
             }
             
             #${config.widgetId}-input:focus {
                 border-color: ${config.theme.primaryColor} !important;
-                box-shadow: 0 0 0 0.2rem ${config.theme.primaryColor}33 !important;
+                box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1) !important;
+            }
+            
+            #${config.widgetId}-form button[type="submit"]:hover {
+                transform: scale(1.05) !important;
+                box-shadow: 0 4px 16px rgba(25, 118, 210, 0.4) !important;
+            }
+            
+            #${config.widgetId}-messages::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            #${config.widgetId}-messages::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            
+            #${config.widgetId}-messages::-webkit-scrollbar-thumb {
+                background: #ddd;
+                border-radius: 3px;
+            }
+            
+            #${config.widgetId}-messages::-webkit-scrollbar-thumb:hover {
+                background: #bbb;
             }
         `;
         document.head.appendChild(style);
@@ -433,6 +593,7 @@
         // Event listeners
         document.getElementById(`${config.widgetId}-button`).addEventListener('click', toggleChat);
         document.getElementById(`${config.widgetId}-close`).addEventListener('click', toggleChat);
+        document.getElementById(`${config.widgetId}-clear`).addEventListener('click', clearChat);
         document.getElementById(`${config.widgetId}-minimize`).addEventListener('click', () => {
             document.getElementById(`${config.widgetId}-window`).style.display = 'none';
             isOpen = false;

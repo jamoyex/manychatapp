@@ -2,6 +2,60 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (pool) => {
+  // GET /api/public/widget/config - Public endpoint to get widget configuration
+  router.get('/widget/config', async (req, res) => {
+    try {
+      // Add CORS headers for external domains
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+      const { agent_id } = req.query;
+      const webhookUrl = process.env.WIDGET_WEBHOOK_URL;
+
+      if (!webhookUrl) {
+        return res.status(500).json({ error: 'Webhook URL not configured' });
+      }
+
+      let agentData = null;
+      
+      if (agent_id) {
+        try {
+          const result = await pool.query(
+            'SELECT bot_name, bot_image_url FROM agents WHERE agent_id = $1 AND is_active = true',
+            [agent_id]
+          );
+          
+          if (result.rows.length > 0) {
+            agentData = {
+              name: result.rows[0].bot_name,
+              imageUrl: result.rows[0].bot_image_url
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching agent data:', error);
+        }
+      }
+
+      res.json({
+        webhookUrl,
+        agent: agentData
+      });
+
+    } catch (error) {
+      console.error('Widget config error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // OPTIONS /api/public/widget/config - Handle preflight requests
+  router.options('/widget/config', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.sendStatus(200);
+  });
+
   // GET /api/public/ghl/custom-fields/{agentId} - Public endpoint to get GHL custom fields
   router.get('/ghl/custom-fields/:agentId', async (req, res) => {
     try {

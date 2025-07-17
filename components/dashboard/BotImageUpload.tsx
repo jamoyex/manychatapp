@@ -104,7 +104,7 @@ export function BotImageUpload({ agentId, agentName, currentImageUrl, onImageUpl
           </div>
           
           <p className="text-sm text-gray-600">
-            Upload a profile image for your bot. This will be displayed in chat interfaces.
+            Upload a profile image for your bot. This will be sent to your welcome message.
           </p>
 
           {/* Compression Info */}

@@ -14,6 +14,7 @@ import { EnhancedResponsesTab } from './EnhancedResponsesTab'
 import { toast } from 'sonner'
 import { IntegrationsTab } from './IntegrationsTab'
 import { BotImageUpload } from './BotImageUpload'
+import { WebsiteWidgetTab } from './WebsiteWidgetTab'
 
 interface Agent {
   id: number
@@ -71,7 +72,7 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
   // Check if regular save buttons should be visible
   const shouldShowRegularSaveButtons = () => {
     if (!hasUnsavedChanges) return false
-    if (activeTab === 'advanced' || activeTab === 'knowledge') return false
+    if (activeTab === 'advanced' || activeTab === 'knowledge' || activeTab === 'integrations' || activeTab === 'widget') return false
     return true
   }
 
@@ -252,6 +253,7 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
                   <TabsList className="h-12 inline-flex items-center gap-4">
                     <TabsTrigger value="core">Core</TabsTrigger>
                     <TabsTrigger value="integrations">Integrations</TabsTrigger>
+                    <TabsTrigger value="widget">Website Widget</TabsTrigger>
                     <TabsTrigger value="knowledge">Knowledge Base</TabsTrigger>
                     <TabsTrigger value="advanced">Advanced</TabsTrigger>
                   </TabsList>
@@ -448,6 +450,16 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
               </TabContentWrapper>
             </TabsContent>
 
+            <TabsContent value="widget">
+              <TabContentWrapper>
+                <WebsiteWidgetTab 
+                  agentId={agent.id}
+                  agentName={agent.bot_name}
+                  agentIdString={agent.agent_id}
+                />
+              </TabContentWrapper>
+            </TabsContent>
+
             <TabsContent value="knowledge">
               <TabContentWrapper>
                 <KnowledgeBaseTab 
@@ -491,7 +503,7 @@ export function AgentConfigurationInterface({ agent, onAgentUpdated, onInstallCl
           </Tabs>
 
           <div className="flex justify-end p-6 border-t">
-            {activeTab !== 'advanced' && activeTab !== 'knowledge' && activeTab !== 'integrations' && (
+            {activeTab !== 'advanced' && activeTab !== 'knowledge' && activeTab !== 'integrations' && activeTab !== 'widget' && (
               <Button type="submit" form="agent-form" disabled={isLoading || !hasUnsavedChanges}>
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>

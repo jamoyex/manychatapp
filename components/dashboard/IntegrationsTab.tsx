@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ExternalLink, Link2, CheckCircle, AlertCircle, MessageSquare, Settings, Loader2 } from "lucide-react"
+import { ExternalLink, Link2, CheckCircle, AlertCircle, MessageSquare, Settings, Loader2, Globe } from "lucide-react"
 import { InstallManyChatModal } from "./InstallManyChatModal"
 import { toast } from 'sonner'
 
@@ -432,6 +432,8 @@ export function IntegrationsTab({
           </div>
         </CardContent>
       </Card>
+
+
 
       {/* Install ManyChat Modal */}
       {installLink && (

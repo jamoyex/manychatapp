@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 interface Message {
@@ -10,7 +10,7 @@ interface Message {
   timestamp: Date
 }
 
-export default function WidgetPage() {
+function WidgetChat() {
   const searchParams = useSearchParams()
   const agentId = searchParams.get('agent-id')
   const [messages, setMessages] = useState<Message[]>([])
@@ -281,5 +281,26 @@ export default function WidgetPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="bg-white p-8 rounded-lg shadow-md">
+        <div className="flex items-center space-x-3">
+          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading chat widget...</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function WidgetPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <WidgetChat />
+    </Suspense>
   )
 } 

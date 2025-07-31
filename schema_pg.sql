@@ -66,6 +66,7 @@ CREATE TABLE agents (
     loader_enabled BOOLEAN DEFAULT false,
     gallery_enabled BOOLEAN DEFAULT false,
     quick_replies_enabled BOOLEAN DEFAULT false,
+    typing_indicator_flow VARCHAR(255),
     bot_image_url TEXT
 );
 

@@ -1060,6 +1060,58 @@ module.exports = (pool) => {
     }
   });
 
+  // PUT /api/agents/:id/typing-indicator-flow - Update typing indicator flow ID
+  router.put('/:id/typing-indicator-flow', async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+      const { id } = req.params;
+      const { flowId } = req.body;
+
+      // Check if agent exists and belongs to user
+      const agentResult = await pool.query(
+        'SELECT id FROM agents WHERE id = $1 AND owner_id = $2',
+        [id, req.session.userId]
+      );
+
+      if (agentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found or you do not have permission.' });
+      }
+
+      // Update the typing indicator flow ID
+      await pool.query(`
+        UPDATE agents 
+        SET typing_indicator_flow = $1
+        WHERE id = $2 AND owner_id = $3
+      `, [flowId, id, req.session.userId]);
+
+      // Fetch updated agent
+      const updatedAgentResult = await pool.query(`
+        SELECT 
+            a.*, 
+            CASE WHEN ai.id IS NOT NULL THEN true ELSE false END as is_installed
+        FROM 
+            agents a
+        LEFT JOIN 
+            app_installs ai ON a.id = ai.agent_id
+        WHERE 
+            a.id = $1 AND a.owner_id = $2
+      `, [id, req.session.userId]);
+
+      if (updatedAgentResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Agent not found after update.' });
+      }
+
+      res.json({ agent: updatedAgentResult.rows[0] });
+
+    } catch (error) {
+      console.error('Update typing indicator flow error:', error);
+      res.status(500).json({ error: 'Failed to update typing indicator flow' });
+    }
+  });
+
   // Add knowledge base item (link, text, or Q&A)
   router.post('/:agentId/knowledge', async (req, res) => {
     try {

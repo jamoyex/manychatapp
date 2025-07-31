@@ -29,6 +29,7 @@ interface Agent {
   loader_enabled?: boolean;
   gallery_enabled?: boolean;
   quick_replies_enabled?: boolean;
+  typing_indicator_flow?: string;
 }
 
 const DetailItem = ({ label, value }: { label: string; value: string | undefined | null }) => (

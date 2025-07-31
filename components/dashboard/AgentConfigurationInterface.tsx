@@ -31,6 +31,7 @@ interface Agent {
   loader_enabled?: boolean
   gallery_enabled?: boolean
   quick_replies_enabled?: boolean
+  typing_indicator_flow?: string
   [key: string]: any
 }
 
